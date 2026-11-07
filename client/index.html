@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <meta name="theme-color" content="#0f766e" />
+    <meta name="description" content="Coordination des livreurs de quartier : carte en temps réel, missions, messagerie." />
+    <!-- PWA : icônes et mode « application » sur iPhone (le manifeste est injecté par vite-plugin-pwa) -->
+    <link rel="icon" type="image/png" sizes="64x64" href="/icons/favicon-64x64.png" />
+    <link rel="apple-touch-icon" href="/icons/apple-touch-icon-180x180.png" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="Conciergerie" />
+    <title>Conciergerie de quartier</title>
+    <script>
+      // Thème clair / sombre appliqué AVANT le premier rendu (pas de flash)
+      (function () {
+        var t = 'light';
+        try { t = localStorage.getItem('tk-theme') || 'light'; } catch (e) {}
+        document.documentElement.setAttribute('data-theme', t === 'dark' ? 'dark' : 'light');
+      })();
+    </script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.jsx"></script>
+  </body>
+</html>

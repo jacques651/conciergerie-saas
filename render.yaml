@@ -1,0 +1,46 @@
+# Blueprint Render : backend Express + Socket.io + SQLite
+# Render > New > Blueprint > choisir ce dépôt. Les valeurs "sync: false" sont demandées à la création.
+services:
+  - type: web
+    name: conciergerie-api
+    runtime: node
+    # Le dépôt entier est utilisé (schema.sql est à la racine) ; on travaille dans server/
+    buildCommand: cd server && npm ci --omit=dev
+    startCommand: cd server && npm start
+    healthCheckPath: /api/health
+    # Disque persistant : nécessite une offre payante (Starter ou plus). Sans disque,
+    # la base SQLite est EFFACÉE à chaque redéploiement ou redémarrage.
+    plan: starter
+    region: frankfurt
+    autoDeploy: true
+    disk:
+      name: sqlite-data
+      mountPath: /var/data
+      sizeGB: 1
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: NODE_VERSION
+        value: "22"
+      - key: DB_PATH
+        value: /var/data/data.sqlite
+      - key: JWT_SECRET
+        generateValue: true          # secret aléatoire généré par Render
+      - key: FRONTEND_URL
+        sync: false                  # ex. https://conciergerie.vercel.app
+      - key: CORS_ALLOW_VERCEL_PREVIEWS
+        value: "false"
+      - key: ADMIN_EMAIL
+        sync: false                  # admin créé au 1er démarrage
+      - key: ADMIN_PASSWORD
+        sync: false                  # 10 caractères minimum ; à retirer ensuite
+      - key: SUBSCRIPTION_CURRENCY
+        value: XOF
+      - key: FEDAPAY_ENVIRONMENT
+        value: sandbox               # passer à "live" en production réelle
+      - key: FEDAPAY_SECRET_KEY
+        sync: false
+      - key: FEDAPAY_PUBLIC_KEY
+        sync: false
+      - key: FEDAPAY_WEBHOOK_SECRET
+        sync: false

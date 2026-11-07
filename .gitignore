@@ -1,0 +1,25 @@
+# Dépendances et builds
+node_modules/
+dist/
+dev-dist/
+
+# Secrets et configuration locale (ne jamais publier)
+.env
+.env.local
+.env.*.local
+client/certs/
+
+# Base SQLite locale
+*.sqlite
+*.sqlite-shm
+*.sqlite-wal
+
+# Fichiers de sauvegarde et journaux
+*.bak-theme
+*.log
+npm-*.log
+
+# Divers
+.DS_Store
+Thumbs.db
+.vercel

@@ -1,0 +1,25 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+html, body, #root { height: 100%; }
+
+@layer components {
+  .btn { @apply inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2 font-medium transition disabled:opacity-50 disabled:cursor-not-allowed; }
+  .btn-primary { @apply btn bg-brand text-white hover:bg-brand-dark; }
+  .btn-ghost { @apply btn border border-gray-300 bg-white text-gray-700 hover:bg-gray-100; }
+  .btn-danger { @apply btn bg-red-600 text-white hover:bg-red-700; }
+  .btn-success { @apply btn bg-green-600 text-white hover:bg-green-700; }
+  .input { @apply w-full rounded-lg border border-gray-300 px-3 py-2 focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand/30; }
+  .card { @apply rounded-xl bg-white p-4 shadow-sm ring-1 ring-gray-200; }
+  .badge { @apply inline-block rounded-full px-2 py-0.5 text-xs font-medium; }
+}
+
+/* Leaflet : correctif des icônes par défaut (chargées depuis le CDN, cf. MapView.jsx) */
+.leaflet-default-icon-path { background-image: url(https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png); }
+.leaflet-marker-icon.leaflet-div-icon { background: transparent; border: none; }
+.leaflet-container img.leaflet-marker-icon,
+.leaflet-container img.leaflet-marker-shadow { max-width: none !important; max-height: none !important; }
+
+/* Leaflet : la carte doit remplir son conteneur */
+.leaflet-container { height: 100%; width: 100%; z-index: 0; }

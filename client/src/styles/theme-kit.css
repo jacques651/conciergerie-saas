@@ -1,0 +1,187 @@
+/* =====================================================================
+   Kit de thème « Vert-ardoise »
+   Cadre sombre (dégradé) · contenu clair · un seul accent sarcelle.
+   Chargé APRÈS index.css ; le portage projet (theme-conciergerie.css) vient en dernier.
+   Règle : body n'est jamais stylé (fonds scopés à #root et aux portails).
+   ===================================================================== */
+
+/* ---------- 1. Jetons ---------- */
+:root {
+  --tk-grad-dark:    linear-gradient(120deg, #02060a 0%, #071114 35%, #10221f 70%, #1f3a3c 100%);
+  --tk-grad-sidebar: linear-gradient(180deg, #1f3a3c 0%, #10221f 30%, #071114 60%, #02060a 100%);
+  --tk-halo:         radial-gradient(circle at 95% -30%, rgba(20,184,166,.35), transparent 50%);
+
+  --tk-accent-50:#f0fdfa; --tk-accent-100:#ccfbf1; --tk-accent-200:#6ee7c8; --tk-accent-300:#5eead4;
+  --tk-accent-500:#14b8a6; --tk-accent-600:#0d9488; --tk-accent-700:#0f766e; --tk-accent-800:#134e4a; --tk-accent-icon:#9ee6d3;
+
+  --tk-ink:#0f172a; --tk-ink-2:#334155; --tk-muted:#64748b; --tk-faint:#94a3b8;
+  --tk-bg-app:#f2f6f5; --tk-surface:#ffffff; --tk-border:#e3ebe8; --tk-input-border:#b9c6c2; --tk-danger:#e03131;
+
+  --tk-radius-sm:8px; --tk-radius-md:12px; --tk-radius-lg:16px;
+  --tk-shadow-card: 0 4px 12px -2px rgba(15,23,42,.08), 0 2px 4px -2px rgba(15,23,42,.05);
+  --tk-shadow-hover: 0 10px 24px -12px rgba(15,118,110,.25);
+  --tk-focus-ring: 0 0 0 3px rgba(20,184,166,.18);
+  --tk-font: 'Inter', 'Segoe UI', Roboto, system-ui, sans-serif;
+
+  /* Canaux RGB des accents (pour les opacités Tailwind : bg-brand/30…) */
+  --tk-rgb-accent-700: 15 118 110; --tk-rgb-accent-800: 19 78 74;
+
+  /* Valeurs de composants dérivées du cahier (§ 5) */
+  --tk-label: #475569;
+  --tk-input-bg: #ffffff;
+  --tk-input-hover: #7f9a94;
+  --tk-input-disabled: #f1f5f4;
+  --tk-th-bg: #f8fafc;
+  --tk-th-border: #e2e8f0;
+  --tk-row-sep: #f1f5f9;
+  --tk-pill-bg: #e8edf4;
+  --tk-tile-bg: #f6faf9;
+  --tk-backdrop: rgba(2,6,10,.30);
+}
+
+/* ---------- 2. Racine (jamais body) ---------- */
+#root {
+  font-family: var(--tk-font);
+  color: var(--tk-ink);
+  background: var(--tk-bg-app);
+  min-height: 100%;
+}
+
+/* ---------- 3. Typographie utilitaire ---------- */
+.tk-eyebrow {
+  font-size: 10.5px; font-weight: 600; text-transform: uppercase; letter-spacing: .18em;
+  color: var(--tk-accent-200);
+}
+.tk-label { font-size: 12.5px; font-weight: 600; color: var(--tk-label); }
+.tk-num, table td, table th { font-variant-numeric: tabular-nums; }
+
+/* ---------- 4. Cartes ---------- */
+:is(#root, .tk-portal) .card {
+  background: var(--tk-surface);
+  border: 1px solid var(--tk-border);
+  border-radius: var(--tk-radius-lg);
+  box-shadow: var(--tk-shadow-card);
+  --tw-ring-shadow: 0 0 #0000; /* neutralise ring-1 de Tailwind */
+}
+/* Titre de carte précédé d'un liseré sarcelle 3 px */
+:is(#root, .tk-portal) .card > h2:first-child, :is(#root, .tk-portal) .card > h3:first-child, .tk-card-title {
+  border-left: 3px solid var(--tk-accent-500); padding-left: 10px; color: var(--tk-ink);
+}
+
+/* ---------- 5. Champs ---------- */
+:is(#root, .tk-portal) .input {
+  background: var(--tk-input-bg);
+  border: 1px solid var(--tk-input-border);
+  border-radius: var(--tk-radius-md);
+  box-shadow: inset 0 1px 2px rgba(15,23,42,.06);
+  color: var(--tk-ink);
+  transition: border-color .15s, box-shadow .15s;
+}
+:is(#root, .tk-portal) .input:hover { border-color: var(--tk-input-hover); }
+:is(#root, .tk-portal) .input:focus { border-color: var(--tk-accent-500); box-shadow: var(--tk-focus-ring); outline: none; --tw-ring-shadow: 0 0 #0000; }
+:is(#root, .tk-portal) .input:disabled { background: var(--tk-input-disabled); }
+:is(#root, .tk-portal) .input::placeholder { color: var(--tk-faint); }
+
+/* ---------- 6. Boutons ---------- */
+:is(#root, .tk-portal) .btn { border-radius: var(--tk-radius-md); font-weight: 600; }
+:is(#root, .tk-portal) .btn-primary, :is(#root, .tk-portal) .btn-success {
+  background: linear-gradient(135deg, #0f766e 0%, #134e4a 100%); color: #fff; border: 0;
+}
+:is(#root, .tk-portal) .btn-primary:hover:not(:disabled), :is(#root, .tk-portal) .btn-success:hover:not(:disabled) { box-shadow: var(--tk-shadow-hover); filter: brightness(1.06); }
+:is(#root, .tk-portal) .btn-ghost { background: var(--tk-surface); color: var(--tk-ink-2); border: 1px solid var(--tk-border); }
+:is(#root, .tk-portal) .btn-ghost:hover:not(:disabled) { background: var(--tk-accent-50); color: var(--tk-accent-700); }
+:is(#root, .tk-portal) .btn-danger { background: var(--tk-danger); color: #fff; }
+:is(#root, .tk-portal) .btn:focus-visible { outline: none; box-shadow: var(--tk-focus-ring); }
+
+/* ---------- 7. Badges (aucune lueur) ---------- */
+:is(#root, .tk-portal) .badge { text-shadow: none; font-weight: 600; border-radius: 999px; }
+:is(#root, .tk-portal) .badge.bg-green-100, :is(#root, .tk-portal) .badge.bg-green-50, .tk-badge-success { background: var(--tk-accent-100); color: var(--tk-accent-700); }
+:is(#root, .tk-portal) .badge.bg-blue-100, :is(#root, .tk-portal) .badge.bg-purple-100, .tk-badge-info { background: #e0f2fe; color: #0369a1; }
+:is(#root, .tk-portal) .badge.bg-amber-100, .tk-badge-warning { background: #fef3c7; color: #b45309; }
+:is(#root, .tk-portal) .badge.bg-red-100, .tk-badge-danger { background: rgba(224,49,49,.08); color: var(--tk-danger); }
+:is(#root, .tk-portal) .badge.bg-gray-100, :is(#root, .tk-portal) .badge.bg-gray-200, .tk-badge-neutral { background: #f1f5f9; color: #475569; }
+
+/* ---------- 8. Tableaux ---------- */
+:is(#root, .tk-portal) table { border-collapse: collapse; }
+:is(#root, .tk-portal) table thead th {
+  background: var(--tk-th-bg); color: var(--tk-muted);
+  font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .06em;
+  padding: 12px 16px; border-bottom: 1px solid var(--tk-th-border); text-align: left;
+}
+:is(#root, .tk-portal) table tbody td { padding: 12px 16px; font-size: 13px; color: var(--tk-ink-2); border-top: 1px solid var(--tk-row-sep); }
+:is(#root, .tk-portal) table tbody tr:hover td { background: var(--tk-accent-50); }
+:is(#root, .tk-portal) table tbody td:first-child { font-weight: 700; color: var(--tk-ink); }
+
+/* ---------- 9. Onglets / boutons segmentés « pilule » ---------- */
+.tk-pills {
+  display: inline-flex; flex-wrap: wrap; gap: 4px;
+  background: var(--tk-pill-bg); border-radius: var(--tk-radius-md); padding: 5px;
+}
+.tk-pills > button, .tk-pills > a {
+  display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+  border-radius: 9px; padding: 6px 14px; font-size: 13px; font-weight: 500;
+  color: var(--tk-muted); background: transparent; transition: background .15s, color .15s; white-space: nowrap;
+}
+.tk-pills > button:hover { color: var(--tk-ink); }
+.tk-pills > [aria-selected="true"], .tk-pills > .is-active {
+  background: var(--tk-surface); color: var(--tk-accent-700); font-weight: 600;
+  box-shadow: 0 1px 3px rgba(15,23,42,.1);
+}
+.tk-pills.tk-pills-block { display: flex; width: 100%; }
+.tk-pills.tk-pills-block > * { flex: 1 1 0; }
+.tk-count { border-radius: 999px; background: var(--tk-accent-700); color: #fff; font-size: 11px; font-weight: 700; padding: 0 6px; }
+
+/* ---------- 10. Indicateurs (KPI) ---------- */
+.tk-kpi {
+  background: var(--tk-surface); border: 1px solid var(--tk-border); border-left: 3px solid var(--tk-accent-500);
+  border-radius: var(--tk-radius-lg); box-shadow: var(--tk-shadow-card); padding: 16px;
+  display: flex; align-items: center; gap: 12px; transition: transform .15s, box-shadow .15s;
+}
+.tk-kpi:hover { transform: translateY(-2px); box-shadow: var(--tk-shadow-hover); }
+.tk-kpi-icon {
+  width: 34px; height: 34px; border-radius: 10px; background: var(--tk-accent-50); color: var(--tk-accent-700);
+  display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+}
+.tk-kpi-label { font-size: 10.5px; font-weight: 600; text-transform: uppercase; letter-spacing: .06em; color: var(--tk-muted); }
+.tk-kpi-value { font-size: 20px; font-weight: 800; color: var(--tk-ink); white-space: nowrap; font-variant-numeric: tabular-nums; }
+
+/* ---------- 11. Blocs de formulaire / fiches ---------- */
+.tk-form-section {
+  background: var(--tk-surface); border: 1px solid var(--tk-border); border-top: 3px solid var(--tk-accent-500);
+  border-radius: var(--tk-radius-lg); box-shadow: var(--tk-shadow-card); padding: 20px;
+}
+.tk-detail-section {
+  background: var(--tk-surface); border: 1px solid var(--tk-border);
+  border-radius: var(--tk-radius-lg); box-shadow: var(--tk-shadow-card); padding: 14px;
+}
+.tk-detail-tile { background: var(--tk-tile-bg); border-radius: var(--tk-radius-md); padding: 10px 12px; transition: background .15s; }
+.tk-detail-tile:hover { background: var(--tk-accent-50); }
+
+/* ---------- 12. Alertes encadrées ---------- */
+.tk-alert { border-radius: var(--tk-radius-md); padding: 10px 12px; font-size: 13px; border: 1px solid; }
+.tk-alert-success { background: var(--tk-accent-50); border-color: var(--tk-accent-100); color: var(--tk-accent-700); }
+.tk-alert-danger { background: rgba(224,49,49,.08); border-color: rgba(224,49,49,.25); color: var(--tk-danger); }
+.tk-alert-info { background: #e0f2fe; border-color: #bae6fd; color: #0369a1; }
+.tk-alert-warning { background: #fef3c7; border-color: #fde68a; color: #b45309; }
+
+/* ---------- 13. Modales (portail) ---------- */
+.tk-modal-backdrop {
+  position: fixed; inset: 0; z-index: 1000; background: var(--tk-backdrop);
+  backdrop-filter: none; -webkit-backdrop-filter: none;
+  display: flex; align-items: center; justify-content: center; padding: 16px;
+  font-family: var(--tk-font); color: var(--tk-ink);
+}
+.tk-modal {
+  background: var(--tk-surface); border-radius: var(--tk-radius-lg); box-shadow: 0 24px 48px -12px rgba(2,6,10,.45);
+  display: flex; flex-direction: column; max-height: calc(100vh - 32px); width: 100%; overflow: hidden;
+}
+.tk-modal-header {
+  background: var(--tk-halo), var(--tk-grad-dark); color: #fff; cursor: move; user-select: none; touch-action: none;
+  display: flex; align-items: center; gap: 10px; padding: 14px 16px;
+}
+.tk-modal-header svg { color: var(--tk-accent-200); }
+.tk-modal-header h2 { font-size: 16px; font-weight: 700; color: #fff; flex: 1; }
+.tk-modal-header button { cursor: pointer; color: #fff; border-radius: 8px; padding: 4px; }
+.tk-modal-header button:hover { background: rgba(255,255,255,.1); }
+.tk-modal-header button svg { color: #fff; }
+.tk-modal-body { padding: 16px; overflow: auto; flex: 1; min-height: 0; }

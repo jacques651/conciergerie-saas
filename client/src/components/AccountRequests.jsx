@@ -5,6 +5,7 @@ import { Check, X, RefreshCw, UserRound, Store, Bike } from 'lucide-react';
 import api, { errMsg } from '../api';
 import { getSocket } from '../socket';
 import { useToast } from './Toast.jsx';
+import { formatPhone } from '../phone';
 
 const FILTERS = [['pending', 'En attente'], ['approved', 'Approuvés'], ['rejected', 'Rejetés'], ['all', 'Tous']];
 const ROLE = { client: ['Client', UserRound], commercant: ['Commerçant', Store], livreur: ['Livreur', Bike] };
@@ -78,7 +79,7 @@ export default function AccountRequests({ onCountChange }) {
       <div className="card overflow-x-auto p-0">
         <table className="w-full text-sm">
           <thead>
-            <tr><th>Nom</th><th>Email</th><th>Rôle</th><th>Inscription</th><th>Statut</th><th className="text-right">Actions</th></tr>
+            <tr><th>Nom</th><th>Téléphone / Email</th><th>Rôle</th><th>Inscription</th><th>Statut</th><th className="text-right">Actions</th></tr>
           </thead>
           <tbody>
             {data.accounts.map((u) => {
@@ -86,8 +87,11 @@ export default function AccountRequests({ onCountChange }) {
               const [stLabel, stClass] = STATUS[u.status] || [u.status, 'tk-badge-neutral'];
               return (
                 <tr key={u.id}>
-                  <td>{u.name}{u.phone && <span className="block text-xs font-normal text-gray-500">{u.phone}</span>}</td>
-                  <td>{u.email}</td>
+                  <td>{u.name}</td>
+                  <td>
+                    <span className="tk-num whitespace-nowrap font-semibold">{formatPhone(u.phone) || '·'}</span>
+                    {u.email && <span className="block text-xs text-gray-500">{u.email}</span>}
+                  </td>
                   <td><span className="inline-flex items-center gap-1.5"><RoleIcon size={14} /> {roleLabel}</span></td>
                   <td className="whitespace-nowrap">{fmtDate(u.created_at)}</td>
                   <td><span className={`badge ${stClass}`}>{stLabel}</span></td>

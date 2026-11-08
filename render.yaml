@@ -30,8 +30,10 @@ services:
         sync: false                  # ex. https://conciergerie.vercel.app
       - key: CORS_ALLOW_VERCEL_PREVIEWS
         value: "false"
+      - key: ADMIN_PHONE
+        sync: false                  # admin créé au 1er démarrage (identifiant : 8 chiffres, ex. 70000000)
       - key: ADMIN_EMAIL
-        sync: false                  # admin créé au 1er démarrage
+        sync: false                  # facultatif
       - key: ADMIN_PASSWORD
         sync: false                  # 10 caractères minimum ; à retirer ensuite
       - key: SUBSCRIPTION_CURRENCY

@@ -147,7 +147,8 @@ async function initPayment(userOrId, plan = 'daily') {
   // 2b) FedaPay : transaction + token → URL de paiement hébergée (Orange Money, Moov Money…)
   try {
     const [firstname, ...rest] = user.name.trim().split(/\s+/);
-    const customer = { firstname: firstname || user.name, lastname: rest.join(' ') || firstname || user.name, email: user.email };
+    const customer = { firstname: firstname || user.name, lastname: rest.join(' ') || firstname || user.name };
+    if (user.email) customer.email = user.email; // l'email est facultatif sur la plateforme
     const phone = bfPhone(user.phone);
     if (phone) customer.phone_number = { number: phone, country: 'bf' };
 

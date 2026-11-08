@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import api, { errMsg } from '../api';
 import AppLayout from '../components/AppLayout.jsx';
+import { formatPhone } from '../phone';
 import { Wallet, Users, Clock, Receipt } from 'lucide-react';
 
 const fcfa = (n) => `${Number(n || 0).toLocaleString('fr-FR')} FCFA`;
@@ -154,7 +155,7 @@ export default function AdminSubscriptions() {
                   {rows.map((s) => (
                     <tr key={s.id} className="border-t">
                       <td className="p-2">{s.id}</td>
-                      <td className="p-2">{s.name}<br /><span className="text-xs text-gray-400">{s.email} · {s.role}</span></td>
+                      <td className="p-2">{s.name}<br /><span className="text-xs text-gray-400">{formatPhone(s.phone) || s.email || '·'} · {s.role}</span></td>
                       <td className="p-2">{PLAN_LABEL[s.plan] || s.plan || '·'}</td>
                       <td className="whitespace-nowrap p-2">{fcfa(s.amount)}</td>
                       <td className="p-2"><span className={`badge ${BADGE[s.effective_status] || ''}`}>{STATUS_FR[s.effective_status] || s.effective_status}</span></td>

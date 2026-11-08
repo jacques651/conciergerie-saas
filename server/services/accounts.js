@@ -2,13 +2,14 @@
 // users.status : 'pending' (inscription) → 'approved' | 'rejected'
 // Pour un livreur, livreur_profiles et recruitment_requests sont tenus synchronisés.
 const { db, nowIso } = require('../db');
+const { formatPhone } = require('./phone');
 
 const ACCOUNT_STATUSES = ['pending', 'approved', 'rejected'];
 
 /** Change le statut d'un compte. Retourne l'utilisateur mis à jour (ou null s'il n'existe pas). */
 function setAccountStatus(userId, status, io) {
   if (!ACCOUNT_STATUSES.includes(status)) throw Object.assign(new Error('Statut invalide'), { status: 400 });
-  const user = db.prepare('SELECT id, email, name, role, status FROM users WHERE id = ?').get(userId);
+  const user = db.prepare('SELECT id, email, phone, name, role, status FROM users WHERE id = ?').get(userId);
   if (!user) return null;
   if (user.role === 'admin') throw Object.assign(new Error("Le statut d'un administrateur ne peut pas être modifié"), { status: 400 });
 
@@ -28,7 +29,7 @@ function setAccountStatus(userId, status, io) {
       // Demande de recrutement (créée si absente)
       const req = db.prepare('SELECT id FROM recruitment_requests WHERE user_id = ? ORDER BY id DESC LIMIT 1').get(user.id);
       if (req) db.prepare('UPDATE recruitment_requests SET status = ? WHERE id = ?').run(status, req.id);
-      else db.prepare('INSERT INTO recruitment_requests (email, name, status, user_id) VALUES (?, ?, ?, ?)').run(user.email, user.name, status, user.id);
+      else db.prepare('INSERT INTO recruitment_requests (email, name, status, user_id) VALUES (?, ?, ?, ?)').run(user.email || formatPhone(user.phone) || '·', user.name, status, user.id);
     }
   })();
 

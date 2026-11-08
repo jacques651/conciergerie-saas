@@ -45,11 +45,11 @@ const SECTIONS = {
       {
         q: 'Comment commander ?',
         steps: [
-          <>Une livraison est créée par le <b>commerçant</b> chez qui vous achetez. Communiquez-lui l'<b>adresse email de votre compte</b> : il vous sélectionne comme « Client de la plateforme ».</>,
+          <>Une livraison est créée par le <b>commerçant</b> chez qui vous achetez. Communiquez-lui le <b>numéro de téléphone de votre compte</b> : il vous sélectionne comme « Client de la plateforme ».</>,
           <>Vous recevez une notification <b>« Nouvelle commande en route ! »</b> et la commande apparaît dans <b>Mes commandes</b> (bouton en haut de la carte).</>,
           <>Besoin d'un coursier sans passer par un commerçant ? Sur la carte, <b>touchez un livreur disponible</b> : votre position lui est envoyée et une conversation s'ouvre pour vous mettre d'accord.</>
         ],
-        note: 'Renseignez votre téléphone à l’inscription : le commerçant n’aura pas à le ressaisir.',
+        note: 'Votre numéro de téléphone est votre identifiant : le commerçant vous retrouve grâce à lui.',
         shot: { src: '/aide/client-commandes.webp', alt: 'Fenêtre Mes commandes', caption: 'Mes commandes : commandes en cours et livrées' }
       },
       {

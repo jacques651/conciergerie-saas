@@ -41,13 +41,15 @@ Remove-Item -Recurse -Force node_modules, package-lock.json -ErrorAction Silentl
 
 ## Comptes de test
 
-| Rôle | Email | Mot de passe | Abonnement |
-|---|---|---|---|
-| Admin | admin@test.com | admin123 | exempté |
-| Commerçant | commercant@test.com | commercant123 | actif 7 jours |
-| Client | client@test.com | client123 | actif 7 jours |
-| Livreur | livreur1@test.com | livreur123 | approuvé + actif 7 jours |
-| Livreur | livreur2@test.com | livreur123 | approuvé + actif 7 jours |
+Connexion avec le **téléphone** (ou l'email) :
+
+| Rôle | Téléphone | Email | Mot de passe | Abonnement |
+|---|---|---|---|---|
+| Admin | 70000000 | admin@test.com | admin123 | exempté |
+| Client | 70000001 | client@test.com | client123 | actif 7 jours |
+| Commerçant | 70000002 | commercant@test.com | commercant123 | actif 7 jours |
+| Livreur | 70000003 | livreur1@test.com | livreur123 | approuvé + actif 7 jours |
+| Livreur | 70000004 | livreur2@test.com | livreur123 | approuvé + actif 7 jours |
 
 Pour tester sur plusieurs rôles en même temps : une fenêtre normale + une fenêtre privée (le jeton est stocké par navigateur). Sur téléphone (même Wi-Fi), ouvrez `http://<IP-du-PC>:5173` et mettez `VITE_API_URL=http://<IP-du-PC>:4000` et `CLIENT_ORIGIN=http://<IP-du-PC>:5173` dans `.env`. ⚠️ La géolocalisation du navigateur exige HTTPS hors `localhost`.
 

@@ -2,6 +2,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { MapPin, Send, Bike, UserCheck } from 'lucide-react';
 import api, { errMsg } from '../api';
+import { formatPhone } from '../phone';
 
 const EMPTY = { client_id: '', client_name: '', client_phone: '', description: '', order_details: '', delivery_price: '' };
 
@@ -18,7 +19,7 @@ export default function MissionForm({ livreur, destination, onCreated, onCancel 
   const linked = clients.find((c) => String(c.id) === String(form.client_id)) || null;
   const filteredClients = useMemo(() => {
     const q = clientSearch.trim().toLowerCase();
-    return q ? clients.filter((c) => `${c.name} ${c.email} ${c.phone || ''}`.toLowerCase().includes(q)) : clients;
+    return q ? clients.filter((c) => `${c.name} ${c.email || ''} ${c.phone || ''} ${formatPhone(c.phone)}`.toLowerCase().includes(q)) : clients;
   }, [clients, clientSearch]);
 
   const submit = async (e) => {
@@ -65,7 +66,7 @@ export default function MissionForm({ livreur, destination, onCreated, onCancel 
         )}
         <select className="input" value={form.client_id} onChange={(e) => setForm({ ...form, client_id: e.target.value })}>
           <option value="">Choisir… (sinon saisie manuelle)</option>
-          {filteredClients.map((c) => <option key={c.id} value={c.id}>{c.name} · {c.email}</option>)}
+          {filteredClients.map((c) => <option key={c.id} value={c.id}>{c.name} · {formatPhone(c.phone) || c.email}</option>)}
         </select>
       </div>
 
@@ -74,7 +75,7 @@ export default function MissionForm({ livreur, destination, onCreated, onCancel 
           <UserCheck size={18} className="mt-0.5 shrink-0" style={{ color: 'var(--tk-accent-600)' }} />
           <div className="min-w-0 flex-1 text-sm">
             <p className="font-semibold">{linked.name}</p>
-            <p className="text-gray-500">{linked.phone || 'Aucun téléphone enregistré'} · suivi de commande et notation activés</p>
+            <p className="text-gray-500">{formatPhone(linked.phone) || 'Aucun téléphone enregistré'} · suivi de commande et notation activés</p>
             {!linked.phone && (
               <label className="mt-2 block space-y-1"><span className="tk-label">Téléphone du client</span>
                 <input className="input" type="tel" placeholder="ex. 70 00 00 00" required value={form.client_phone} onChange={set('client_phone')} /></label>

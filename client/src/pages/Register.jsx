@@ -4,6 +4,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { UserRound, Store, Bike, Mail, Phone, Lock, Eye, EyeOff, ArrowLeft, ArrowRight, UserPlus, ShieldCheck, Clock, LogIn } from 'lucide-react';
 import api, { errMsg } from '../api';
 import AuthShell from '../components/AuthShell.jsx';
+import { normalizePhone, formatPhone, PHONE_HINT } from '../phone';
 
 const ROLES = [
   { v: 'client', label: 'Client', icon: UserRound, desc: 'Je cherche un livreur près de moi' },
@@ -13,8 +14,8 @@ const ROLES = [
 
 const STEPS = [
   { title: 'Votre profil', help: 'Client, commerçant ou livreur' },
-  { title: 'Identité', help: 'Nom, email et téléphone' },
-  { title: 'Sécurité', help: 'Mot de passe (6 caractères minimum)' }
+  { title: 'Identité', help: 'Nom et numéro de téléphone' },
+  { title: 'Sécurité', help: 'Mot de passe (4 caractères minimum)' }
 ];
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -33,8 +34,9 @@ export default function Register() {
     setError('');
     if (step === 1) {
       if (!form.name.trim()) return setError('Indiquez votre nom complet.');
-      if (!EMAIL_RE.test(form.email)) return setError('Adresse email invalide.');
-      if (form.phone && !/^[+0-9 ().-]{6,30}$/.test(form.phone.trim())) return setError('Numéro de téléphone invalide.');
+      if (!form.phone.trim()) return setError('Indiquez votre numéro de téléphone : il sert à vous connecter.');
+      if (!normalizePhone(form.phone)) return setError(`Numéro invalide : ${PHONE_HINT}.`);
+      if (form.email.trim() && !EMAIL_RE.test(form.email.trim())) return setError('Adresse email invalide (ou laissez le champ vide).');
     }
     setStep((s) => Math.min(s + 1, 2));
   };
@@ -42,10 +44,12 @@ export default function Register() {
   const submit = async (e) => {
     e.preventDefault();
     if (step < 2) return next();
-    if (form.password.length < 6) return setError('Mot de passe : 6 caractères minimum.');
+    if (form.password.length < 4) return setError('Mot de passe : 4 caractères minimum.');
     setError(''); setLoading(true);
     try {
-      const { data } = await api.post('/auth/register', { ...form, phone: form.phone.trim() || undefined });
+      const { data } = await api.post('/auth/register', {
+        ...form, phone: normalizePhone(form.phone), email: form.email.trim() || undefined
+      });
       // Pas de connexion automatique : le compte attend la validation de l'administrateur
       setCreated({ ...data.user, message: data.message });
     } catch (e) { setError(errMsg(e)); }
@@ -70,7 +74,7 @@ export default function Register() {
         </div>
         <div className="tk-detail-section grid grid-cols-1 gap-2 text-sm sm:grid-cols-2">
           <div className="tk-detail-tile"><p className="tk-kpi-label">Profil</p><p className="font-semibold">{ROLES.find((r) => r.v === created.role)?.label}</p></div>
-          <div className="tk-detail-tile"><p className="tk-kpi-label">Email</p><p className="truncate font-semibold">{created.email}</p></div>
+          <div className="tk-detail-tile"><p className="tk-kpi-label">Téléphone (identifiant)</p><p className="truncate font-semibold">{formatPhone(created.phone)}</p></div>
         </div>
         {created.role !== 'livreur' && (
           <p className="tk-alert tk-alert-info text-xs">Après validation, un abonnement (journalier, mensuel ou annuel) vous sera demandé à la première connexion.</p>
@@ -127,19 +131,20 @@ export default function Register() {
               </div>
             </label>
             <label className="block space-y-1">
-              <span className="tk-label">Email</span>
-              <div className="tk-field">
-                <Mail className="tk-left" />
-                <input className="input" type="email" required autoComplete="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} />
-              </div>
-            </label>
-            <label className="block space-y-1">
-              <span className="tk-label">Téléphone (facultatif)</span>
+              <span className="tk-label">Téléphone (obligatoire)</span>
               <div className="tk-field">
                 <Phone className="tk-left" />
-                <input className="input" type="tel" autoComplete="tel" placeholder="ex. 70 00 00 00" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} />
+                <input className="input" type="tel" inputMode="tel" required autoComplete="tel" placeholder="70 00 00 00"
+                  value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} />
               </div>
-              <span className="block text-xs text-gray-500">Permet aux commerçants de vous livrer sans ressaisir votre numéro.</span>
+              <span className="block text-xs text-gray-500">Votre numéro sert à vous connecter. Avec ou sans +226.</span>
+            </label>
+            <label className="block space-y-1">
+              <span className="tk-label">Email (facultatif)</span>
+              <div className="tk-field">
+                <Mail className="tk-left" />
+                <input className="input" type="email" autoComplete="email" placeholder="votre@email.com" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} />
+              </div>
             </label>
           </>
         )}
@@ -147,10 +152,10 @@ export default function Register() {
         {step === 2 && (
           <>
             <label className="block space-y-1">
-              <span className="tk-label">Mot de passe</span>
+              <span className="tk-label">Mot de passe (4 caractères minimum)</span>
               <div className="tk-field">
                 <Lock className="tk-left" />
-                <input className="input" type={showPwd ? 'text' : 'password'} minLength={6} required autoFocus autoComplete="new-password"
+                <input className="input" type={showPwd ? 'text' : 'password'} minLength={4} required autoFocus autoComplete="new-password" placeholder="4 caractères minimum"
                   value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} />
                 <button type="button" className="tk-field-btn" onClick={() => setShowPwd((v) => !v)}
                   aria-label={showPwd ? 'Masquer le mot de passe' : 'Afficher le mot de passe'}>
@@ -160,7 +165,7 @@ export default function Register() {
             </label>
             <div className="tk-detail-section grid grid-cols-1 gap-2 text-sm sm:grid-cols-3">
               <div className="tk-detail-tile"><p className="tk-kpi-label">Profil</p><p className="font-semibold">{role.label}</p></div>
-              <div className="tk-detail-tile sm:col-span-2"><p className="tk-kpi-label">Compte</p><p className="truncate font-semibold">{form.name} · {form.email}</p></div>
+              <div className="tk-detail-tile sm:col-span-2"><p className="tk-kpi-label">Compte</p><p className="truncate font-semibold">{form.name} · {formatPhone(normalizePhone(form.phone))}{form.email.trim() ? ` · ${form.email.trim()}` : ''}</p></div>
             </div>
             <p className="tk-alert tk-alert-warning">
               Votre compte sera vérifié par un administrateur avant de pouvoir vous connecter. Un abonnement est ensuite requis pour accéder aux fonctionnalités.

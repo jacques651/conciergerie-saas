@@ -5,6 +5,7 @@ const { db, nowIso, getActiveSubscription, getPrices, setSetting, PRICE_KEYS } =
 const { requireAuth, requireRole } = require('../middleware/auth');
 const { activateSubscription } = require('../services/payment');
 const { setAccountStatus, ACCOUNT_STATUSES } = require('../services/accounts');
+const { normalizePhone, formatPhone, PHONE_FORMAT_MESSAGE } = require('../services/phone');
 
 router.use(requireAuth, requireRole('admin')); // toutes les routes admin sont réservées à l'admin
 
@@ -87,24 +88,30 @@ router.post('/recruitment/:id/reject', wrap((req, res) => {
 
 // --- Création manuelle d'un livreur (approuvé directement) -------
 router.post('/livreurs', wrap((req, res) => {
-  const { email, password, name } = req.body || {};
-  if (!email || !password || !name) return res.status(400).json({ error: 'email, password et name requis' });
-  const mail = email.trim().toLowerCase();
-  if (db.prepare('SELECT 1 FROM users WHERE email = ?').get(mail)) return res.status(409).json({ error: 'Email déjà utilisé' });
+  const { password } = req.body || {};
+  const name = String(req.body?.name || '').trim();
+  if (!req.body?.phone || !password || !name) return res.status(400).json({ error: 'Nom, téléphone et mot de passe requis' });
+  const phone = normalizePhone(req.body.phone);
+  if (!phone) return res.status(400).json({ error: PHONE_FORMAT_MESSAGE });
+  if (String(password).length < 4) return res.status(400).json({ error: 'Mot de passe : 4 caractères minimum' });
+  const mail = String(req.body?.email || '').trim().toLowerCase() || null;
+  if (mail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(mail)) return res.status(400).json({ error: 'Email invalide' });
+  if (db.prepare('SELECT 1 FROM users WHERE phone = ?').get(phone)) return res.status(409).json({ error: `Le numéro ${formatPhone(phone)} est déjà utilisé` });
+  if (mail && db.prepare('SELECT 1 FROM users WHERE email = ?').get(mail)) return res.status(409).json({ error: 'Email déjà utilisé' });
   const id = db.transaction(() => {
-    const { lastInsertRowid } = db.prepare(`INSERT INTO users (email, password_hash, role, name, status) VALUES (?, ?, 'livreur', ?, 'approved')`)
-      .run(mail, bcrypt.hashSync(password, 10), name.trim());
+    const { lastInsertRowid } = db.prepare(`INSERT INTO users (email, phone, password_hash, role, name, status) VALUES (?, ?, ?, 'livreur', ?, 'approved')`)
+      .run(mail, phone, bcrypt.hashSync(password, 10), name);
     db.prepare(`INSERT INTO livreur_profiles (user_id, status) VALUES (?, 'approved')`).run(lastInsertRowid);
-    db.prepare(`INSERT INTO recruitment_requests (email, name, status, user_id) VALUES (?, ?, 'approved', ?)`).run(mail, name.trim(), lastInsertRowid);
+    db.prepare(`INSERT INTO recruitment_requests (email, name, status, user_id) VALUES (?, ?, 'approved', ?)`).run(mail || formatPhone(phone), name, lastInsertRowid);
     return lastInsertRowid;
   })();
-  res.status(201).json({ id, email: mail, name, role: 'livreur' });
+  res.status(201).json({ id, phone, email: mail, name, role: 'livreur' });
 }));
 
 // --- Utilisateurs ------------------------------------------------
 router.get('/users', wrap((req, res) => {
   const users = db.prepare(`
-    SELECT u.id, u.email, u.name, u.role, u.status, u.created_at, lp.status AS livreur_status
+    SELECT u.id, u.email, u.phone, u.name, u.role, u.status, u.created_at, lp.status AS livreur_status
     FROM users u LEFT JOIN livreur_profiles lp ON lp.user_id = u.id ORDER BY u.created_at DESC`).all();
   res.json(users.map((u) => {
     const s = u.role === 'admin' ? null : getActiveSubscription(u.id);
@@ -116,7 +123,7 @@ router.get('/users', wrap((req, res) => {
 router.get('/subscriptions', wrap((req, res) => {
   const now = nowIso();
   const rows = db.prepare(`
-    SELECT s.*, u.email, u.name, u.role,
+    SELECT s.*, u.email, u.phone, u.name, u.role,
       CASE WHEN s.status = 'active' AND s.expires_at <= ? THEN 'expired' ELSE s.status END AS effective_status
     FROM subscriptions s JOIN users u ON u.id = s.user_id ORDER BY s.created_at DESC`).all(now);
   const revenue = db.prepare(`SELECT COALESCE(SUM(amount),0) AS t FROM subscriptions WHERE status IN ('active','expired') AND payment_method != 'seed'`).get().t;

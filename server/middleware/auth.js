@@ -17,7 +17,7 @@ function accountStatusMessage(status) {
 }
 
 const signToken = (user) =>
-  jwt.sign({ id: user.id, role: user.role, name: user.name, email: user.email }, JWT_SECRET, { expiresIn: '7d' });
+  jwt.sign({ id: user.id, role: user.role, name: user.name, phone: user.phone || null, email: user.email || null }, JWT_SECRET, { expiresIn: '7d' });
 
 const verifyToken = (token) => jwt.verify(token, JWT_SECRET);
 
@@ -28,7 +28,7 @@ function requireAuth(req, res, next) {
   if (!token) return res.status(401).json({ error: 'Authentification requise' });
   try {
     const payload = verifyToken(token);
-    const user = db.prepare('SELECT id, email, role, name, status FROM users WHERE id = ?').get(payload.id);
+    const user = db.prepare('SELECT id, email, phone, role, name, status FROM users WHERE id = ?').get(payload.id);
     if (!user) return res.status(401).json({ error: 'Utilisateur introuvable' });
     // Compte non validé (ou refusé après coup) : accès bloqué même avec un jeton encore valide
     if (user.role !== 'admin' && user.status !== 'approved') {

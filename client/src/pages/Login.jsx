@@ -8,7 +8,7 @@ import AuthShell from '../components/AuthShell.jsx';
 export default function Login() {
   const { saveSession } = useAuth();
   const nav = useNavigate();
-  const [form, setForm] = useState({ email: '', password: '' });
+  const [form, setForm] = useState({ identifier: '', password: '' });
   const [params] = useSearchParams();
   // Message initial selon le contexte : ?compte=attente|refuse (compte bloqué), ?inscription=ok (après inscription)
   const initialNotice = params.get('compte') === 'refuse'
@@ -47,7 +47,7 @@ export default function Login() {
         <div className="tk-auth-bar mt-3" />
       </div>
       <h2>Connexion</h2>
-      <p className="tk-auth-help">Veuillez entrer vos identifiants pour vous connecter</p>
+      <p className="tk-auth-help">Connectez-vous avec votre numéro de téléphone (ou votre email)</p>
 
       <form onSubmit={submit} className="space-y-4">
         {notice && (
@@ -68,8 +68,9 @@ export default function Login() {
         )}
         {error && <p className="tk-alert tk-alert-danger">{error}</p>}
         <div className="tk-field">
-          <input className="input" type="email" placeholder="Email" aria-label="Email" required autoComplete="email" autoFocus
-            value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} />
+          <input className="input" type="text" inputMode="email" placeholder="70 00 00 00 ou votre@email.com" aria-label="Téléphone ou Email"
+            required autoComplete="username" autoCapitalize="none" spellCheck={false} autoFocus
+            value={form.identifier} onChange={(e) => setForm({ ...form, identifier: e.target.value })} />
           <User className="tk-right" />
         </div>
         <div className="tk-field">

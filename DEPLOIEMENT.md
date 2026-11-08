@@ -83,7 +83,8 @@ Render → **New** → **Web Service** → dépôt, puis :
 | `JWT_SECRET` | 32 caractères aléatoires minimum | généré par le Blueprint ; **le serveur refuse de démarrer sinon** |
 | `FRONTEND_URL` | `https://<votre-app>.vercel.app` | origine(s) autorisée(s) par CORS, séparées par des virgules ; sert aussi d'URL de retour FedaPay |
 | `CORS_ALLOW_VERCEL_PREVIEWS` | `false` | `true` pour autoriser les prévisualisations `*.vercel.app` |
-| `ADMIN_EMAIL` | votre email | admin créé au 1er démarrage s'il n'existe pas |
+| `ADMIN_PHONE` | ex. `70000000` | identifiant de l'admin créé au 1er démarrage s'il n'existe pas |
+| `ADMIN_EMAIL` | votre email (facultatif) | identifiant alternatif |
 | `ADMIN_PASSWORD` | 10 caractères minimum | à **supprimer** une fois l'admin créé |
 | `ADMIN_NAME` | ex. `Jacques KORGO` | facultatif |
 | `FEDAPAY_ENVIRONMENT` | `sandbox` puis `live` | |

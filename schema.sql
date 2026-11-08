@@ -11,11 +11,11 @@ PRAGMA foreign_keys = ON;
 
 CREATE TABLE IF NOT EXISTS users (
   id            INTEGER PRIMARY KEY AUTOINCREMENT,
-  email         TEXT NOT NULL UNIQUE,
+  email         TEXT UNIQUE,     -- facultatif (beaucoup d'utilisateurs n'en ont pas)
   password_hash TEXT NOT NULL,
   role          TEXT NOT NULL CHECK (role IN ('admin','livreur','client','commercant')),
   name          TEXT NOT NULL,
-  phone         TEXT,            -- téléphone (facultatif, utilisé pour les missions liées)
+  phone         TEXT UNIQUE,     -- identifiant principal : 8 chiffres (ex. 70000001), sans +226
   status        TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending','approved','rejected')), -- validation admin
   created_at    TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
 );

@@ -46,6 +46,57 @@ if (!userCols.includes('status')) {
 }
 db.exec(`CREATE INDEX IF NOT EXISTS idx_users_status ON users(status, role)`);
 
+// Migration : connexion par téléphone (Burkina Faso)
+//   - email devient FACULTATIF (NOT NULL retiré) → reconstruction de la table (SQLite ne sait pas modifier une colonne)
+//   - phone devient UNIQUE et normalisé (8 chiffres). Numéros invalides ou en double → vidés (l'email reste l'identifiant).
+(function migrateUsersPhoneLogin() {
+  const cols = db.prepare(`PRAGMA table_info(users)`).all();
+  const emailCol = cols.find((c) => c.name === 'email');
+  const phoneUnique = db.prepare(`PRAGMA index_list(users)`).all()
+    .some((ix) => ix.unique && db.prepare(`PRAGMA index_info("${ix.name}")`).all().some((c) => c.name === 'phone'));
+  if (emailCol && !emailCol.notnull && phoneUnique) return; // déjà migré
+  const { normalizePhone } = require('./services/phone');
+
+  // Normalisation des téléphones existants (doublons → seul le plus ancien garde le numéro)
+  const seen = new Set();
+  const updates = db.prepare('SELECT id, phone FROM users ORDER BY id').all().map((u) => {
+    const n = normalizePhone(u.phone);
+    const keep = n && !seen.has(n) ? n : null;
+    if (keep) seen.add(keep);
+    return [keep, u.id];
+  });
+
+  db.pragma('foreign_keys = OFF');
+  try {
+    db.transaction(() => {
+      db.exec(`
+        CREATE TABLE users_new (
+          id            INTEGER PRIMARY KEY AUTOINCREMENT,
+          email         TEXT UNIQUE,
+          password_hash TEXT NOT NULL,
+          role          TEXT NOT NULL CHECK (role IN ('admin','livreur','client','commercant')),
+          name          TEXT NOT NULL,
+          phone         TEXT UNIQUE,
+          status        TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending','approved','rejected')),
+          created_at    TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+        );
+        INSERT INTO users_new (id, email, password_hash, role, name, phone, status, created_at)
+          SELECT id, NULLIF(TRIM(email), ''), password_hash, role, name, NULL, COALESCE(status, 'approved'), created_at FROM users;
+        DROP TABLE users;
+        ALTER TABLE users_new RENAME TO users;
+        CREATE INDEX IF NOT EXISTS idx_users_status ON users(status, role);
+      `);
+      const upd = db.prepare('UPDATE users SET phone = ? WHERE id = ?');
+      for (const [phone, id] of updates) if (phone) upd.run(phone, id);
+      const broken = db.prepare('PRAGMA foreign_key_check').all();
+      if (broken.length) throw new Error(`Migration users : ${broken.length} référence(s) cassée(s)`);
+    })();
+    console.log('[db] Migration : connexion par téléphone activée (email facultatif)');
+  } finally {
+    db.pragma('foreign_keys = ON');
+  }
+})();
+
 // ---------------- Paramètres (table settings) ----------------
 const DEFAULT_SETTINGS = { price_daily: '200', price_monthly: '5000', price_yearly: '50000' };
 const PRICE_KEYS = ['price_daily', 'price_monthly', 'price_yearly'];

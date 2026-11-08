@@ -21,6 +21,14 @@ api.interceptors.response.use(
   (err) => {
     const status = err.response?.status;
     const path = window.location.pathname;
+    // Compte en attente / refusé (même avec un ancien jeton) → déconnexion et explication sur /login
+    const code = err.response?.data?.code;
+    if (status === 403 && typeof code === 'string' && code.startsWith('ACCOUNT_') && path !== '/login') {
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+      window.location.assign(`/login?compte=${code === 'ACCOUNT_REJECTED' ? 'refuse' : 'attente'}`);
+      return Promise.reject(err);
+    }
     // Abonnement expiré → page de paiement
     if (status === 402 && path !== '/abonnement') window.location.assign('/abonnement');
     // Jeton invalide → reconnexion

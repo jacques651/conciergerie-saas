@@ -9,6 +9,13 @@ if (process.env.NODE_ENV === 'production' && !process.argv.includes('--dev') && 
   process.exit(1);
 }
 
+/** Message affiché pour un compte non approuvé */
+function accountStatusMessage(status) {
+  return status === 'rejected'
+    ? "Votre demande d'inscription a été refusée."
+    : "Votre compte est en attente d'approbation par l'administrateur.";
+}
+
 const signToken = (user) =>
   jwt.sign({ id: user.id, role: user.role, name: user.name, email: user.email }, JWT_SECRET, { expiresIn: '7d' });
 
@@ -21,8 +28,12 @@ function requireAuth(req, res, next) {
   if (!token) return res.status(401).json({ error: 'Authentification requise' });
   try {
     const payload = verifyToken(token);
-    const user = db.prepare('SELECT id, email, role, name FROM users WHERE id = ?').get(payload.id);
+    const user = db.prepare('SELECT id, email, role, name, status FROM users WHERE id = ?').get(payload.id);
     if (!user) return res.status(401).json({ error: 'Utilisateur introuvable' });
+    // Compte non validé (ou refusé après coup) : accès bloqué même avec un jeton encore valide
+    if (user.role !== 'admin' && user.status !== 'approved') {
+      return res.status(403).json({ error: accountStatusMessage(user.status), code: 'ACCOUNT_' + String(user.status).toUpperCase() });
+    }
     req.user = user;
     next();
   } catch {
@@ -53,6 +64,7 @@ function requireApprovedLivreur(req, res, next) {
 }
 
 module.exports = {
+  accountStatusMessage,
   signToken, verifyToken, requireAuth, requireRole,
   requireActiveSubscription, requireApprovedLivreur, isSubscribed
 };

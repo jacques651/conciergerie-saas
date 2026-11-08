@@ -6,12 +6,16 @@ import AppLayout from '../components/AppLayout.jsx';
 import MapView from '../components/MapView.jsx';
 import { useLiveLivreurs } from '../hooks';
 import AdminDashboard from '../components/AdminDashboard.jsx';
+import AccountRequests from '../components/AccountRequests.jsx';
 
 const STATUS_FR = { pending: 'En attente', approved: 'Approuvée', rejected: 'Rejetée' };
 const BADGE = { pending: 'bg-amber-100 text-amber-800', approved: 'bg-green-100 text-green-800', rejected: 'bg-red-100 text-red-700' };
 
 export default function Admin() {
   const [tab, setTab] = useState('dashboard');
+  // Nombre de comptes en attente (badge de l'onglet), mis à jour par l'onglet Demandes
+  const [pendingAccounts, setPendingAccounts] = useState(0);
+  useEffect(() => { api.get('/admin/accounts', { params: { status: 'pending' } }).then((r) => setPendingAccounts(r.data.counts.pending)).catch(() => {}); }, [tab]);
   const [requests, setRequests] = useState([]);
   const [filter, setFilter] = useState('pending');
   const [users, setUsers] = useState([]);
@@ -38,7 +42,7 @@ export default function Admin() {
     catch (e) { setMsg(errMsg(e)); }
   };
 
-  const TABS = [['dashboard', 'Tableau de bord'], ['recrutement', 'Recrutement'], ['creer', 'Créer un livreur'], ['utilisateurs', 'Utilisateurs'], ['carte', `Carte (${livreurs.length})`]];
+  const TABS = [['dashboard', 'Tableau de bord'], ['demandes', pendingAccounts > 0 ? `Demandes d'inscription (${pendingAccounts})` : "Demandes d'inscription"], ['recrutement', 'Recrutement livreurs'], ['creer', 'Créer un livreur'], ['utilisateurs', 'Utilisateurs'], ['carte', `Carte (${livreurs.length})`]];
 
   return (
     <AppLayout title="Administration" fill={tab === 'carte'}
@@ -51,7 +55,9 @@ export default function Admin() {
       {msg && <p className="tk-alert tk-alert-info cursor-pointer" onClick={() => setMsg('')}>{msg}</p>}
 
       <div className={tab === 'carte' ? 'tk-fill' : ''}>
-        {tab === 'dashboard' && <AdminDashboard />}
+        {tab === 'dashboard' && <AdminDashboard onOpenRequests={() => setTab('demandes')} />}
+
+        {tab === 'demandes' && <AccountRequests onCountChange={setPendingAccounts} />}
 
         {tab === 'recrutement' && (
           <div className="space-y-3">

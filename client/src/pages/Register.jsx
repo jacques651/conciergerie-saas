@@ -1,19 +1,18 @@
 // Inscription en 3 étapes (rôle → identité → mot de passe). Même API qu'avant : POST /auth/register.
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { UserRound, Store, Bike, Mail, Phone, Lock, Eye, EyeOff, ArrowLeft, ArrowRight, UserPlus } from 'lucide-react';
+import { UserRound, Store, Bike, Mail, Phone, Lock, Eye, EyeOff, ArrowLeft, ArrowRight, UserPlus, ShieldCheck, Clock, LogIn } from 'lucide-react';
 import api, { errMsg } from '../api';
-import { useAuth } from '../auth.jsx';
 import AuthShell from '../components/AuthShell.jsx';
 
 const ROLES = [
   { v: 'client', label: 'Client', icon: UserRound, desc: 'Je cherche un livreur près de moi' },
-  { v: 'commercant', label: 'Commerçant', icon: Store, desc: "J'envoie des livraisons à mes clients" }
-  // Pas de « livreur » : les comptes livreurs sont créés et validés par l'administrateur
+  { v: 'commercant', label: 'Commerçant', icon: Store, desc: "J'envoie des livraisons à mes clients" },
+  { v: 'livreur', label: 'Livreur', icon: Bike, desc: 'Je livre dans mon quartier' }
 ];
 
 const STEPS = [
-  { title: 'Votre profil', help: 'Client ou commerçant' },
+  { title: 'Votre profil', help: 'Client, commerçant ou livreur' },
   { title: 'Identité', help: 'Nom, email et téléphone' },
   { title: 'Sécurité', help: 'Mot de passe (6 caractères minimum)' }
 ];
@@ -21,7 +20,7 @@ const STEPS = [
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 export default function Register() {
-  const { saveSession } = useAuth();
+  const [created, setCreated] = useState(null); // compte créé, en attente de validation
   const nav = useNavigate();
   const [step, setStep] = useState(0);
   const [form, setForm] = useState({ name: '', email: '', phone: '', password: '', role: 'client' });
@@ -47,14 +46,39 @@ export default function Register() {
     setError(''); setLoading(true);
     try {
       const { data } = await api.post('/auth/register', { ...form, phone: form.phone.trim() || undefined });
-      saveSession(data);
-      // Nouveau compte → aucun abonnement : paiement d'abord
-      nav(data.role === 'livreur' ? '/livreur' : '/abonnement');
+      // Pas de connexion automatique : le compte attend la validation de l'administrateur
+      setCreated({ ...data.user, message: data.message });
     } catch (e) { setError(errMsg(e)); }
     finally { setLoading(false); }
   };
 
   const role = ROLES.find((r) => r.v === form.role);
+
+  // ---------- Écran de confirmation après inscription ----------
+  if (created) {
+    return (
+      <AuthShell steps={STEPS} current={3}>
+        <div className="flex flex-col items-center gap-3 text-center">
+          <span className="flex h-14 w-14 items-center justify-center rounded-full" style={{ background: 'var(--tk-accent-50)', color: 'var(--tk-accent-700)' }}>
+            <Clock size={28} />
+          </span>
+          <h2>Compte créé</h2>
+        </div>
+        <div className="tk-alert tk-alert-success space-y-1" role="status">
+          <p className="font-semibold">Votre compte a été créé. Il est en attente de validation par l'administrateur.</p>
+          <p className="text-sm">Vous pourrez vous connecter dès qu'il sera approuvé.</p>
+        </div>
+        <div className="tk-detail-section grid grid-cols-1 gap-2 text-sm sm:grid-cols-2">
+          <div className="tk-detail-tile"><p className="tk-kpi-label">Profil</p><p className="font-semibold">{ROLES.find((r) => r.v === created.role)?.label}</p></div>
+          <div className="tk-detail-tile"><p className="tk-kpi-label">Email</p><p className="truncate font-semibold">{created.email}</p></div>
+        </div>
+        {created.role !== 'livreur' && (
+          <p className="tk-alert tk-alert-info text-xs">Après validation, un abonnement (journalier, mensuel ou annuel) vous sera demandé à la première connexion.</p>
+        )}
+        <button className="btn-primary w-full" onClick={() => nav('/login?inscription=ok')}><LogIn size={18} /> Aller à la connexion</button>
+      </AuthShell>
+    );
+  }
 
   return (
     <AuthShell steps={STEPS} current={step}>
@@ -66,7 +90,7 @@ export default function Register() {
 
         {step === 0 && (
           <>
-            <div className="grid grid-cols-2 gap-2">
+            <div className="grid grid-cols-3 gap-2">
               {ROLES.map((r) => {
                 const Icon = r.icon;
                 const sel = form.role === r.v;
@@ -87,8 +111,8 @@ export default function Register() {
             </div>
             <p className="tk-alert tk-alert-info">{role.desc}</p>
             <p className="flex items-start gap-2 text-xs" style={{ color: 'var(--tk-muted)' }}>
-              <Bike size={14} className="mt-0.5 shrink-0" />
-              <span>Vous êtes livreur ? Les comptes livreurs sont créés par l'administrateur après validation : contactez-le.</span>
+              <ShieldCheck size={14} className="mt-0.5 shrink-0" />
+              <span>Chaque compte est vérifié par un administrateur avant sa première utilisation.</span>
             </p>
           </>
         )}
@@ -139,7 +163,7 @@ export default function Register() {
               <div className="tk-detail-tile sm:col-span-2"><p className="tk-kpi-label">Compte</p><p className="truncate font-semibold">{form.name} · {form.email}</p></div>
             </div>
             <p className="tk-alert tk-alert-warning">
-              Un abonnement (journalier, mensuel ou annuel) est requis pour accéder aux fonctionnalités.
+              Votre compte sera vérifié par un administrateur avant de pouvoir vous connecter. Un abonnement est ensuite requis pour accéder aux fonctionnalités.
             </p>
           </>
         )}

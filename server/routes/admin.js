@@ -4,6 +4,7 @@ const bcrypt = require('bcryptjs');
 const { db, nowIso, getActiveSubscription, getPrices, setSetting, PRICE_KEYS } = require('../db');
 const { requireAuth, requireRole } = require('../middleware/auth');
 const { activateSubscription } = require('../services/payment');
+const { setAccountStatus, ACCOUNT_STATUSES } = require('../services/accounts');
 
 router.use(requireAuth, requireRole('admin')); // toutes les routes admin sont réservées à l'admin
 
@@ -46,25 +47,41 @@ router.get('/recruitment', wrap((req, res) => {
   res.json(rows);
 }));
 
+// --- Validation des comptes (tous rôles) -------------------------
+// GET /api/admin/accounts?status=pending|approved|rejected|all
+router.get('/accounts', wrap((req, res) => {
+  const status = req.query.status || 'pending';
+  if (status !== 'all' && !ACCOUNT_STATUSES.includes(status)) return res.status(400).json({ error: 'Statut invalide' });
+  const rows = db.prepare(`
+    SELECT id, name, email, phone, role, status, created_at FROM users
+    WHERE role != 'admin' ${status === 'all' ? '' : 'AND status = ?'}
+    ORDER BY created_at DESC, id DESC LIMIT 1000`).all(...(status === 'all' ? [] : [status]));
+  const counts = { pending: 0, approved: 0, rejected: 0 };
+  for (const r of db.prepare(`SELECT status, COUNT(*) AS n FROM users WHERE role != 'admin' GROUP BY status`).all()) counts[r.status] = r.n;
+  res.json({ accounts: rows, counts });
+}));
+
+// POST /api/admin/accounts/:id/approve | /reject
+for (const [action, status] of [['approve', 'approved'], ['reject', 'rejected']]) {
+  router.post(`/accounts/:id/${action}`, wrap((req, res) => {
+    const u = setAccountStatus(Number(req.params.id), status, req.app.get('io'));
+    if (!u) return res.status(404).json({ error: 'Utilisateur introuvable' });
+    res.json({ ok: true, user: u });
+  }));
+}
+
 router.post('/recruitment/:id/approve', wrap((req, res) => {
   const r = db.prepare('SELECT * FROM recruitment_requests WHERE id = ?').get(req.params.id);
   if (!r) return res.status(404).json({ error: 'Demande introuvable' });
-  db.transaction(() => {
-    db.prepare(`UPDATE recruitment_requests SET status = 'approved' WHERE id = ?`).run(r.id);
-    // Validé → 'approved' (hors ligne tant qu'il ne se met pas en ligne)
-    db.prepare(`UPDATE livreur_profiles SET status = 'approved', last_update = ? WHERE user_id = ?`).run(nowIso(), r.user_id);
-  })();
-  req.app.get('io')?.to(`user:${r.user_id}`).emit('livreur:approved', { userId: r.user_id });
+  // Même logique que l'onglet « Demandes » : compte + profil livreur + demande synchronisés
+  setAccountStatus(r.user_id, 'approved', req.app.get('io'));
   res.json({ ok: true });
 }));
 
 router.post('/recruitment/:id/reject', wrap((req, res) => {
   const r = db.prepare('SELECT * FROM recruitment_requests WHERE id = ?').get(req.params.id);
   if (!r) return res.status(404).json({ error: 'Demande introuvable' });
-  db.transaction(() => {
-    db.prepare(`UPDATE recruitment_requests SET status = 'rejected' WHERE id = ?`).run(r.id);
-    db.prepare(`UPDATE livreur_profiles SET status = 'pending_approval' WHERE user_id = ?`).run(r.user_id);
-  })();
+  setAccountStatus(r.user_id, 'rejected', req.app.get('io'));
   res.json({ ok: true });
 }));
 
@@ -75,7 +92,7 @@ router.post('/livreurs', wrap((req, res) => {
   const mail = email.trim().toLowerCase();
   if (db.prepare('SELECT 1 FROM users WHERE email = ?').get(mail)) return res.status(409).json({ error: 'Email déjà utilisé' });
   const id = db.transaction(() => {
-    const { lastInsertRowid } = db.prepare(`INSERT INTO users (email, password_hash, role, name) VALUES (?, ?, 'livreur', ?)`)
+    const { lastInsertRowid } = db.prepare(`INSERT INTO users (email, password_hash, role, name, status) VALUES (?, ?, 'livreur', ?, 'approved')`)
       .run(mail, bcrypt.hashSync(password, 10), name.trim());
     db.prepare(`INSERT INTO livreur_profiles (user_id, status) VALUES (?, 'approved')`).run(lastInsertRowid);
     db.prepare(`INSERT INTO recruitment_requests (email, name, status, user_id) VALUES (?, ?, 'approved', ?)`).run(mail, name.trim(), lastInsertRowid);
@@ -87,7 +104,7 @@ router.post('/livreurs', wrap((req, res) => {
 // --- Utilisateurs ------------------------------------------------
 router.get('/users', wrap((req, res) => {
   const users = db.prepare(`
-    SELECT u.id, u.email, u.name, u.role, u.created_at, lp.status AS livreur_status
+    SELECT u.id, u.email, u.name, u.role, u.status, u.created_at, lp.status AS livreur_status
     FROM users u LEFT JOIN livreur_profiles lp ON lp.user_id = u.id ORDER BY u.created_at DESC`).all();
   res.json(users.map((u) => {
     const s = u.role === 'admin' ? null : getActiveSubscription(u.id);
@@ -139,6 +156,7 @@ router.get('/stats', wrap((req, res) => {
   const usersTotal = Object.values(usersByRole).reduce((a, b) => a + b, 0);
   const livreursOnline = db.prepare(`SELECT COUNT(*) AS n FROM livreur_profiles WHERE status IN ('en_ligne','en_livraison')`).get().n;
   const livreursPending = db.prepare(`SELECT COUNT(*) AS n FROM livreur_profiles WHERE status = 'pending_approval'`).get().n;
+  const accountsPending = db.prepare(`SELECT COUNT(*) AS n FROM users WHERE role != 'admin' AND status = 'pending'`).get().n;
 
   // Chiffre d'affaires des abonnements (hors abonnements de démonstration du seed)
   const paid = `status IN ('active','expired') AND payment_method != 'seed'`;
@@ -160,7 +178,7 @@ router.get('/stats', wrap((req, res) => {
 
   res.json({
     missions: { total: missionsTotal, byStatus: missionsByStatus, deliveredValue },
-    users: { total: usersTotal, byRole: usersByRole, livreursOnline, livreursPending },
+    users: { total: usersTotal, byRole: usersByRole, livreursOnline, livreursPending, accountsPending },
     revenue: { total: revenueTotal, month: revenueMonth, byPlan: revenueByPlan, activeSubscribers, currency: 'XOF' },
     topLivreurs
   });

@@ -47,7 +47,7 @@ function Panel({ title, children, className = '' }) {
   );
 }
 
-export default function AdminDashboard() {
+export default function AdminDashboard({ onOpenRequests }) {
   const [stats, setStats] = useState(null);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -81,8 +81,10 @@ export default function AdminDashboard() {
         <Kpi icon={Wallet} label="CA abonnements" value={fcfa(revenue.total)} hint={`${revenue.activeSubscribers} abonné(s) actif(s)`} />
         <Kpi icon={CalendarDays} label="CA du mois" value={fcfa(revenue.month)} hint={`Courses livrées : ${fcfa(missions.deliveredValue)}`} />
       </div>
-      {users.livreursPending > 0 && (
-        <p className="tk-alert tk-alert-warning flex items-center gap-2"><UserCheck size={16} /> {users.livreursPending} livreur(s) en attente de validation (onglet Recrutement).</p>
+      {users.accountsPending > 0 && (
+        <button type="button" onClick={onOpenRequests} className="tk-alert tk-alert-warning flex w-full items-center gap-2 text-left">
+          <UserCheck size={16} /> {users.accountsPending} demande(s) d'inscription en attente de validation · voir l'onglet Demandes d'inscription →
+        </button>
       )}
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">

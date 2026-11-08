@@ -15,7 +15,7 @@ module.exports = function bootstrapAdmin() {
       console.warn('[admin] ADMIN_PASSWORD trop court (10 caractères minimum) : admin non créé.');
       return;
     }
-    db.prepare(`INSERT INTO users (email, password_hash, role, name) VALUES (?, ?, 'admin', ?)`)
+    db.prepare(`INSERT INTO users (email, password_hash, role, name, status) VALUES (?, ?, 'admin', ?, 'approved')`)
       .run(email, bcrypt.hashSync(password, 10), process.env.ADMIN_NAME || 'Administrateur');
     console.log(`[admin] Compte administrateur créé : ${email} (vous pouvez retirer ADMIN_PASSWORD des variables)`);
   } catch (e) {

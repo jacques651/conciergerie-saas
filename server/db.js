@@ -37,6 +37,14 @@ if (!missionCols.includes('client_id')) db.exec(`ALTER TABLE missions ADD COLUMN
 db.exec(`CREATE INDEX IF NOT EXISTS idx_mission_client ON missions(client_id, status)`);
 const userCols = db.prepare(`PRAGMA table_info(users)`).all().map((c) => c.name);
 if (!userCols.includes('phone')) db.exec(`ALTER TABLE users ADD COLUMN phone TEXT`);
+// Migration : validation des comptes par l'admin. Les comptes EXISTANTS sont considérés comme approuvés
+// (sauf les livreurs encore en attente) pour ne bloquer personne lors de la mise à jour.
+if (!userCols.includes('status')) {
+  db.exec(`ALTER TABLE users ADD COLUMN status TEXT NOT NULL DEFAULT 'approved'`);
+  db.exec(`UPDATE users SET status = 'pending' WHERE role = 'livreur'
+           AND id IN (SELECT user_id FROM livreur_profiles WHERE status = 'pending_approval')`);
+}
+db.exec(`CREATE INDEX IF NOT EXISTS idx_users_status ON users(status, role)`);
 
 // ---------------- Paramètres (table settings) ----------------
 const DEFAULT_SETTINGS = { price_daily: '200', price_monthly: '5000', price_yearly: '50000' };

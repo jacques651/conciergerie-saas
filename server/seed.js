@@ -16,7 +16,7 @@ db.exec(`DELETE FROM reviews; DELETE FROM messages; DELETE FROM missions; DELETE
          DELETE FROM sqlite_sequence;`);
 
 const addUser = (email, pwd, role, name) =>
-  db.prepare('INSERT INTO users (email, password_hash, role, name) VALUES (?, ?, ?, ?)')
+  db.prepare(`INSERT INTO users (email, password_hash, role, name, status) VALUES (?, ?, ?, ?, 'approved')`)
     .run(email, bcrypt.hashSync(pwd, 10), role, name).lastInsertRowid;
 
 const addSub = (userId) =>

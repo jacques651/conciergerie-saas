@@ -16,6 +16,7 @@ CREATE TABLE IF NOT EXISTS users (
   role          TEXT NOT NULL CHECK (role IN ('admin','livreur','client','commercant')),
   name          TEXT NOT NULL,
   phone         TEXT,            -- téléphone (facultatif, utilisé pour les missions liées)
+  status        TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending','approved','rejected')), -- validation admin
   created_at    TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 

@@ -9,8 +9,9 @@ function initSocket(io) {
   io.use((socket, next) => {
     try {
       const p = verifyToken(socket.handshake.auth?.token);
-      const user = db.prepare('SELECT id, name, role, email FROM users WHERE id = ?').get(p.id);
+      const user = db.prepare('SELECT id, name, role, email, status FROM users WHERE id = ?').get(p.id);
       if (!user) return next(new Error('unauthorized'));
+      if (user.role !== 'admin' && user.status !== 'approved') return next(new Error('account_not_approved'));
       socket.user = user;
       next();
     } catch { next(new Error('unauthorized')); }

@@ -2,11 +2,10 @@
 const router = require('express').Router();
 const bcrypt = require('bcryptjs');
 const { db, getActiveSubscription } = require('../db');
-const { signToken } = require('../middleware/auth');
+const { signToken, accountStatusMessage } = require('../middleware/auth');
 
-// Rôles ouverts à l'inscription publique. Les livreurs sont créés (et validés) par l'administrateur.
-const PUBLIC_ROLES = ['client', 'commercant'];
-const ADMIN_ONLY_ROLES = ['livreur', 'admin'];
+// Rôles ouverts à l'inscription publique. Tout nouveau compte est « pending » jusqu'à validation par l'admin.
+const PUBLIC_ROLES = ['client', 'commercant', 'livreur'];
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 function authPayload(user) {
@@ -37,11 +36,8 @@ router.post('/register', (req, res) => {
       return res.status(400).json({ error: 'Champs requis : email, password, name, role' });
     if (!EMAIL_RE.test(email)) return res.status(400).json({ error: 'Email invalide' });
     if (String(password).length < 6) return res.status(400).json({ error: 'Mot de passe : 6 caractères minimum' });
-    if (ADMIN_ONLY_ROLES.includes(role))
-      return res.status(403).json({ error: role === 'livreur'
-        ? "Les comptes livreurs sont créés par l'administrateur : contactez-le pour rejoindre l'équipe."
-        : "Ce rôle ne peut pas être créé par inscription publique." });
-    if (!PUBLIC_ROLES.includes(role)) return res.status(400).json({ error: 'Rôle invalide : client ou commercant' });
+    if (role === 'admin') return res.status(403).json({ error: 'Ce rôle ne peut pas être créé par inscription publique.' });
+    if (!PUBLIC_ROLES.includes(role)) return res.status(400).json({ error: 'Rôle invalide : client, commercant ou livreur' });
 
     const mail = email.trim().toLowerCase();
     if (db.prepare('SELECT 1 FROM users WHERE email = ?').get(mail))
@@ -51,10 +47,9 @@ router.post('/register', (req, res) => {
     // Transaction : utilisateur + profil livreur + demande de recrutement
     const create = db.transaction(() => {
       const { lastInsertRowid: id } = db
-        .prepare('INSERT INTO users (email, password_hash, role, name, phone) VALUES (?, ?, ?, ?, ?)')
+        .prepare(`INSERT INTO users (email, password_hash, role, name, phone, status) VALUES (?, ?, ?, ?, ?, 'pending')`)
         .run(mail, hash, role, name.trim(), phone);
-      // Sécurité (au cas où un rôle livreur passerait un jour par ici) : toujours "pending_approval",
-      // l'espace livreur reste bloqué tant que l'admin n'a pas validé le compte.
+      // Livreur : profil bloqué ("pending_approval") + demande de recrutement, synchronisés à la validation
       if (role === 'livreur') {
         db.prepare(`INSERT INTO livreur_profiles (user_id, status) VALUES (?, 'pending_approval')`).run(id);
         db.prepare(`INSERT INTO recruitment_requests (email, name, status, user_id) VALUES (?, ?, 'pending', ?)`)
@@ -63,8 +58,14 @@ router.post('/register', (req, res) => {
       return id;
     });
     const id = create();
-    const user = db.prepare('SELECT id, email, name, role FROM users WHERE id = ?').get(id);
-    return res.status(201).json(authPayload(user));
+    // Pas de connexion automatique : le compte doit d'abord être approuvé par l'administrateur
+    req.app.get('io')?.to('admins').emit('account:new', { id, name: name.trim(), role });
+    return res.status(201).json({
+      ok: true,
+      status: 'pending',
+      user: { id, email: mail, name: name.trim(), role },
+      message: 'Votre compte est en attente de validation par un administrateur.'
+    });
   } catch (e) {
     console.error('[register]', e);
     return res.status(500).json({ error: 'Erreur serveur' });
@@ -79,6 +80,9 @@ router.post('/login', (req, res) => {
     const user = db.prepare('SELECT * FROM users WHERE email = ?').get(String(email).trim().toLowerCase());
     if (!user || !bcrypt.compareSync(password, user.password_hash))
       return res.status(401).json({ error: 'Identifiants incorrects' });
+    // Validation par l'admin requise (l'admin lui-même n'est jamais bloqué)
+    if (user.role !== 'admin' && user.status !== 'approved')
+      return res.status(403).json({ error: accountStatusMessage(user.status), code: 'ACCOUNT_' + String(user.status).toUpperCase() });
     return res.json(authPayload(user));
   } catch (e) {
     console.error('[login]', e);

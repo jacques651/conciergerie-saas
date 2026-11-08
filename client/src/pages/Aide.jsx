@@ -146,6 +146,14 @@ const SECTIONS = {
         ]
       },
       {
+        q: 'Je me suis inscrit mais je ne peux pas me connecter',
+        steps: [
+          <>Chaque nouveau compte (client, commerçant ou livreur) est <b>vérifié par un administrateur</b> avant sa première utilisation.</>,
+          <>Tant que la vérification n'est pas faite, la connexion affiche <b>« Votre compte est en attente d'approbation »</b> : réessayez plus tard.</>,
+          <>Si votre demande a été refusée, contactez l'administrateur pour en connaître la raison.</>
+        ]
+      },
+      {
         q: 'Mon abonnement a expiré, que se passe-t-il ?',
         steps: [
           <>Vous êtes redirigé vers <b>Mon abonnement</b> : la carte, les missions et la messagerie sont suspendues.</>,

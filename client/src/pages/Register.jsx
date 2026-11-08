@@ -8,12 +8,12 @@ import AuthShell from '../components/AuthShell.jsx';
 
 const ROLES = [
   { v: 'client', label: 'Client', icon: UserRound, desc: 'Je cherche un livreur près de moi' },
-  { v: 'commercant', label: 'Commerçant', icon: Store, desc: "J'envoie des livraisons" },
-  { v: 'livreur', label: 'Livreur', icon: Bike, desc: 'Je livre (validation admin requise)' }
+  { v: 'commercant', label: 'Commerçant', icon: Store, desc: "J'envoie des livraisons à mes clients" }
+  // Pas de « livreur » : les comptes livreurs sont créés et validés par l'administrateur
 ];
 
 const STEPS = [
-  { title: 'Votre profil', help: 'Client, commerçant ou livreur' },
+  { title: 'Votre profil', help: 'Client ou commerçant' },
   { title: 'Identité', help: 'Nom, email et téléphone' },
   { title: 'Sécurité', help: 'Mot de passe (6 caractères minimum)' }
 ];
@@ -66,7 +66,7 @@ export default function Register() {
 
         {step === 0 && (
           <>
-            <div className="grid grid-cols-3 gap-2">
+            <div className="grid grid-cols-2 gap-2">
               {ROLES.map((r) => {
                 const Icon = r.icon;
                 const sel = form.role === r.v;
@@ -86,6 +86,10 @@ export default function Register() {
               })}
             </div>
             <p className="tk-alert tk-alert-info">{role.desc}</p>
+            <p className="flex items-start gap-2 text-xs" style={{ color: 'var(--tk-muted)' }}>
+              <Bike size={14} className="mt-0.5 shrink-0" />
+              <span>Vous êtes livreur ? Les comptes livreurs sont créés par l'administrateur après validation : contactez-le.</span>
+            </p>
           </>
         )}
 
@@ -136,7 +140,6 @@ export default function Register() {
             </div>
             <p className="tk-alert tk-alert-warning">
               Un abonnement (journalier, mensuel ou annuel) est requis pour accéder aux fonctionnalités.
-              {form.role === 'livreur' && ' Votre compte livreur devra aussi être validé par un administrateur.'}
             </p>
           </>
         )}

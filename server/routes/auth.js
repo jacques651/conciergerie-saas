@@ -4,7 +4,9 @@ const bcrypt = require('bcryptjs');
 const { db, getActiveSubscription } = require('../db');
 const { signToken } = require('../middleware/auth');
 
-const PUBLIC_ROLES = ['client', 'commercant', 'livreur']; // jamais "admin"
+// Rôles ouverts à l'inscription publique. Les livreurs sont créés (et validés) par l'administrateur.
+const PUBLIC_ROLES = ['client', 'commercant'];
+const ADMIN_ONLY_ROLES = ['livreur', 'admin'];
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 function authPayload(user) {
@@ -35,7 +37,11 @@ router.post('/register', (req, res) => {
       return res.status(400).json({ error: 'Champs requis : email, password, name, role' });
     if (!EMAIL_RE.test(email)) return res.status(400).json({ error: 'Email invalide' });
     if (String(password).length < 6) return res.status(400).json({ error: 'Mot de passe : 6 caractères minimum' });
-    if (!PUBLIC_ROLES.includes(role)) return res.status(400).json({ error: 'Rôle non autorisé à l\'inscription' });
+    if (ADMIN_ONLY_ROLES.includes(role))
+      return res.status(403).json({ error: role === 'livreur'
+        ? "Les comptes livreurs sont créés par l'administrateur : contactez-le pour rejoindre l'équipe."
+        : "Ce rôle ne peut pas être créé par inscription publique." });
+    if (!PUBLIC_ROLES.includes(role)) return res.status(400).json({ error: 'Rôle invalide : client ou commercant' });
 
     const mail = email.trim().toLowerCase();
     if (db.prepare('SELECT 1 FROM users WHERE email = ?').get(mail))
@@ -47,6 +53,8 @@ router.post('/register', (req, res) => {
       const { lastInsertRowid: id } = db
         .prepare('INSERT INTO users (email, password_hash, role, name, phone) VALUES (?, ?, ?, ?, ?)')
         .run(mail, hash, role, name.trim(), phone);
+      // Sécurité (au cas où un rôle livreur passerait un jour par ici) : toujours "pending_approval",
+      // l'espace livreur reste bloqué tant que l'admin n'a pas validé le compte.
       if (role === 'livreur') {
         db.prepare(`INSERT INTO livreur_profiles (user_id, status) VALUES (?, 'pending_approval')`).run(id);
         db.prepare(`INSERT INTO recruitment_requests (email, name, status, user_id) VALUES (?, ?, 'pending', ?)`)

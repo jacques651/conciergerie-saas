@@ -24,6 +24,6 @@ function normalizePhone(raw) {
 /** « 70000001 » → « 70 00 00 01 » */
 const formatPhone = (p) => (p && /^\d{8}$/.test(p) ? p.replace(/(\d{2})(?=\d)/g, '$1 ') : p || null);
 
-const PHONE_FORMAT_MESSAGE = 'Numéro invalide : 8 chiffres commençant par 5, 6 ou 7 (ex. 70 00 00 00), avec ou sans +226';
+const PHONE_FORMAT_MESSAGE = 'Numéro de téléphone invalide : saisissez 8 chiffres commençant par 5, 6 ou 7 (ex : 70 12 34 56), ou +226 suivi de ces 8 chiffres';
 
 module.exports = { normalizePhone, formatPhone, PHONE_FORMAT_MESSAGE };

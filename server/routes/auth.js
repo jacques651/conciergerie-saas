@@ -9,7 +9,6 @@ const MIN_PASSWORD = 4; // mots de passe courts acceptés (usage local)
 
 // Rôles ouverts à l'inscription publique. Tout nouveau compte est « pending » jusqu'à validation par l'admin.
 const PUBLIC_ROLES = ['client', 'commercant', 'livreur'];
-const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 function authPayload(user) {
   const sub = user.role === 'admin' ? null : getActiveSubscription(user.id);
@@ -32,16 +31,15 @@ function authPayload(user) {
 // POST /api/auth/register
 router.post('/register', (req, res) => {
   try {
+    // Champs acceptés : name, phone, password, role (formulaire simplifié, pas d'email)
     const { password, role } = req.body || {};
     const name = String(req.body?.name || '').trim();
-    const rawEmail = String(req.body?.email || '').trim().toLowerCase();
-
-    // Champs obligatoires : nom, téléphone, mot de passe, rôle (l'email est facultatif)
-    if (!name || !req.body?.phone || !password || !role)
-      return res.status(400).json({ error: 'Champs requis : nom, téléphone, mot de passe et rôle' });
+    if (!req.body?.phone) return res.status(400).json({ error: 'Le numéro de téléphone est obligatoire' });
+    if (!password) return res.status(400).json({ error: 'Le mot de passe est obligatoire' });
+    if (!name) return res.status(400).json({ error: 'Le nom complet est obligatoire' });
+    if (!role) return res.status(400).json({ error: 'Choisissez un profil : client, commerçant ou livreur' });
     const phone = normalizePhone(req.body.phone);
     if (!phone) return res.status(400).json({ error: PHONE_FORMAT_MESSAGE });
-    if (rawEmail && !EMAIL_RE.test(rawEmail)) return res.status(400).json({ error: 'Email invalide' });
     if (String(password).length < MIN_PASSWORD) return res.status(400).json({ error: `Mot de passe : ${MIN_PASSWORD} caractères minimum` });
     if (role === 'admin') return res.status(403).json({ error: 'Ce rôle ne peut pas être créé par inscription publique.' });
     if (!PUBLIC_ROLES.includes(role)) return res.status(400).json({ error: 'Rôle invalide : client, commercant ou livreur' });
@@ -49,9 +47,7 @@ router.post('/register', (req, res) => {
     // Unicité : téléphone puis email
     if (db.prepare('SELECT 1 FROM users WHERE phone = ?').get(phone))
       return res.status(409).json({ error: `Le numéro ${formatPhone(phone)} est déjà utilisé par un autre compte` });
-    const email = rawEmail || null;
-    if (email && db.prepare('SELECT 1 FROM users WHERE email = ?').get(email))
-      return res.status(409).json({ error: 'Cet email est déjà utilisé' });
+    const email = null; // l'email n'est plus demandé à l'inscription (colonne conservée, facultative)
 
     const hash = bcrypt.hashSync(password, 10);
     // Transaction : utilisateur + (livreur) profil bloqué et demande de recrutement
@@ -77,30 +73,29 @@ router.post('/register', (req, res) => {
       message: 'Votre compte est en attente de validation par un administrateur.'
     });
   } catch (e) {
-    if (String(e.message).includes('UNIQUE')) return res.status(409).json({ error: 'Ce numéro ou cet email est déjà utilisé' });
+    if (String(e.message).includes('UNIQUE')) return res.status(409).json({ error: 'Ce numéro est déjà utilisé par un autre compte' });
     console.error('[register]', e);
     return res.status(500).json({ error: 'Erreur serveur' });
   }
 });
 
-// POST /api/auth/login { identifier, password }
-// identifier = numéro de téléphone (70000001, 70 00 00 01, +22670000001…) OU email.
-// (Compatibilité : l'ancien champ « email » est encore accepté.)
+// POST /api/auth/login { phone, password }
+// 1) recherche par numéro de téléphone (70123456, 70 12 34 56, +226 70 12 34 56…)
+// 2) sinon, recherche par email (anciens comptes créés avec un email)
+// (Compatibilité : les champs « identifier » et « email » sont aussi acceptés.)
 router.post('/login', (req, res) => {
   try {
-    const identifier = String(req.body?.identifier ?? req.body?.email ?? '').trim();
+    const login = String(req.body?.phone ?? req.body?.identifier ?? req.body?.email ?? '').trim();
     const { password } = req.body || {};
-    if (!identifier || !password) return res.status(400).json({ error: 'Téléphone (ou email) et mot de passe requis' });
+    if (!login || !password) return res.status(400).json({ error: 'Téléphone et mot de passe requis' });
 
     let user = null;
-    if (identifier.includes('@')) {
-      user = db.prepare('SELECT * FROM users WHERE email = ?').get(identifier.toLowerCase());
-    } else {
-      const phone = normalizePhone(identifier);
-      if (phone) user = db.prepare('SELECT * FROM users WHERE phone = ?').get(phone);
-    }
+    const phone = normalizePhone(login);
+    if (phone) user = db.prepare('SELECT * FROM users WHERE phone = ?').get(phone);
+    if (!user && login.includes('@')) user = db.prepare('SELECT * FROM users WHERE email = ?').get(login.toLowerCase());
+    if (!user && !phone && !login.includes('@')) return res.status(400).json({ error: PHONE_FORMAT_MESSAGE });
     if (!user || !bcrypt.compareSync(password, user.password_hash))
-      return res.status(401).json({ error: 'Identifiant ou mot de passe incorrect' });
+      return res.status(401).json({ error: 'Téléphone ou mot de passe incorrect' });
     // Validation par l'admin requise (l'admin lui-même n'est jamais bloqué)
     if (user.role !== 'admin' && user.status !== 'approved')
       return res.status(403).json({ error: accountStatusMessage(user.status), code: 'ACCOUNT_' + String(user.status).toUpperCase() });

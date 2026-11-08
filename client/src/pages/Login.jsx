@@ -2,13 +2,13 @@ import { useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import api, { errMsg } from '../api';
 import { useAuth, homeFor } from '../auth.jsx';
-import { ShieldCheck, User, Lock, Eye, EyeOff, LogIn, Clock, Ban, CheckCircle2 } from 'lucide-react';
+import { ShieldCheck, Phone, Lock, Eye, EyeOff, LogIn, Clock, Ban, CheckCircle2 } from 'lucide-react';
 import AuthShell from '../components/AuthShell.jsx';
 
 export default function Login() {
   const { saveSession } = useAuth();
   const nav = useNavigate();
-  const [form, setForm] = useState({ identifier: '', password: '' });
+  const [form, setForm] = useState({ phone: '', password: '' });
   const [params] = useSearchParams();
   // Message initial selon le contexte : ?compte=attente|refuse (compte bloqué), ?inscription=ok (après inscription)
   const initialNotice = params.get('compte') === 'refuse'
@@ -47,7 +47,7 @@ export default function Login() {
         <div className="tk-auth-bar mt-3" />
       </div>
       <h2>Connexion</h2>
-      <p className="tk-auth-help">Connectez-vous avec votre numéro de téléphone (ou votre email)</p>
+      <p className="tk-auth-help">Connectez-vous avec votre numéro de téléphone</p>
 
       <form onSubmit={submit} className="space-y-4">
         {notice && (
@@ -67,11 +67,12 @@ export default function Login() {
           <p className="tk-alert tk-alert-success flex items-center gap-2"><CheckCircle2 size={16} /> Compte créé : connexion possible après validation par l'administrateur.</p>
         )}
         {error && <p className="tk-alert tk-alert-danger">{error}</p>}
+        <span className="tk-label block">Téléphone</span>
         <div className="tk-field">
-          <input className="input" type="text" inputMode="email" placeholder="70 00 00 00 ou votre@email.com" aria-label="Téléphone ou Email"
+          <input className="input tk-num" type="tel" inputMode="tel" placeholder="70 00 00 00" aria-label="Téléphone"
             required autoComplete="username" autoCapitalize="none" spellCheck={false} autoFocus
-            value={form.identifier} onChange={(e) => setForm({ ...form, identifier: e.target.value })} />
-          <User className="tk-right" />
+            value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} />
+          <Phone className="tk-left" />
         </div>
         <div className="tk-field">
           <Lock className="tk-left" />

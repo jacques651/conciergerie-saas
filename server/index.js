@@ -45,7 +45,12 @@ const app = express();
 app.set('trust proxy', 1); // derrière le proxy HTTPS de Render
 const server = http.createServer(app);
 const io = new Server(server, { cors: { origin: corsOrigin, credentials: true } });
-app.set('io', io); // accessible dans les routes via req.app.get('io')
+app.set('io', io);
+// Diagnostic : origine de chaque connexion Socket.io (refusée par CORS → aucune ligne "[socket] connecté" ensuite)
+io.engine.on('connection', (raw) => console.log(`[socket] nouvelle connexion, origine: ${raw.request.headers.origin || 'aucune'} · transport: ${raw.transport.name}`));
+io.engine.on('connection_error', (err) => console.warn(`[socket] erreur moteur (${err.req?.headers?.origin || 'aucune origine'}) : ${err.code} ${err.message}`));
+console.log(`[cors] origines autorisées : ${IS_PROD ? (allowedOrigins.join(', ') || 'AUCUNE (FRONTEND_URL manquant)') : 'toutes (développement)'}`);
+require('./services/notifications').setIo(io); // accessible dans les routes via req.app.get('io')
 
 app.use(cors({ origin: corsOrigin, credentials: true }));
 // Webhook FedaPay : route PUBLIQUE, déclarée AVANT express.json car la signature

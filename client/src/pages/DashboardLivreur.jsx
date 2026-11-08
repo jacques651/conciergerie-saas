@@ -2,6 +2,7 @@
 // Desktop : carte 60 % | missions 40 %. Mobile : carte 50vh en haut, missions en dessous.
 // GPS : watchPosition + envoi socket "livreur:location" toutes les 5 s quand en ligne / en livraison.
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import api, { errMsg } from '../api';
 import { getSocket } from '../socket';
 import { useAuth } from '../auth.jsx';
@@ -46,6 +47,15 @@ export default function DashboardLivreur() {
   const unread = useUnreadMessages(user.id, tab === 'messages');
   // Ouvre l'onglet Messages sur un contact donné
   const openChat = (c) => { setContact(c); setTab('messages'); };
+  // Lien de notification « ?chat=ID&nom=… » → ouvre directement la conversation, puis nettoie l'URL
+  const [chatParams, setChatParams] = useSearchParams();
+  useEffect(() => {
+    const id = Number(chatParams.get('chat'));
+    if (!id) return;
+    openChat({ id, name: chatParams.get('nom') || 'Contact' });
+    setChatParams({}, { replace: true });
+  }, [chatParams]); // eslint-disable-line react-hooks/exhaustive-deps
+
 
   const watchIdRef = useRef(null);
   const posRef = useRef(null); // dernière position GPS connue

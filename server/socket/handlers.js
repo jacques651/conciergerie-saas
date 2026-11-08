@@ -3,6 +3,7 @@
 const { db, nowIso } = require('../db');
 const { verifyToken, isSubscribed } = require('../middleware/auth');
 const { emitMissionStatus } = require('../services/missionEvents');
+const { creerNotification, chatLink } = require('../services/notifications');
 
 function initSocket(io) {
   // Authentification par JWT au handshake : io(url, { auth: { token } })
@@ -11,10 +12,13 @@ function initSocket(io) {
       const p = verifyToken(socket.handshake.auth?.token);
       const user = db.prepare('SELECT id, name, role, email, phone, status FROM users WHERE id = ?').get(p.id);
       if (!user) return next(new Error('unauthorized'));
-      if (user.role !== 'admin' && user.status !== 'approved') return next(new Error('account_not_approved'));
+      if (user.role !== 'admin' && user.status !== 'approved') {
+        console.warn(`[socket] refusé : utilisateur ${user.id} non approuvé`);
+        return next(new Error('account_not_approved'));
+      }
       socket.user = user;
       next();
-    } catch { next(new Error('unauthorized')); }
+    } catch (e) { console.warn(`[socket] jeton refusé (${socket.handshake.headers.origin || 'sans origine'}) : ${e.message}`); next(new Error('unauthorized')); }
   });
 
   io.on('connection', (socket) => {
@@ -22,12 +26,17 @@ function initSocket(io) {
     socket.join(`user:${u.id}`); // room privée toujours accessible (pour recevoir "subscription:expired")
     if (isSubscribed(u)) socket.join('realtime');
     if (u.role === 'admin') socket.join('admins');
+    console.log(`[socket] connecté : user ${u.id} (${u.role}) · ${socket.id} · ${socket.conn.transport.name} · rooms ${[...socket.rooms].filter((r) => r !== socket.id).join(', ')}`);
+    socket.on('disconnect', (reason) => console.log(`[socket] déconnecté : user ${u.id} · ${reason}`));
 
     // Garde : action temps réel autorisée seulement si abonnement actif
     const guard = (fn) => (...args) => {
       if (!isSubscribed(u)) {
         socket.emit('subscription:expired', { userId: u.id });
         socket.leave('realtime');
+        const ack = args[args.length - 1];
+        if (typeof ack === 'function') ack({ error: 'Abonnement inactif : action impossible' });
+        console.warn(`[socket] action refusée (abonnement inactif) : user ${u.id} (${u.role}) · évènement ignoré`);
         return;
       }
       try { fn(...args); } catch (e) { console.error('[socket]', e); socket.emit('error:message', { error: 'Erreur serveur' }); }
@@ -69,6 +78,9 @@ function initSocket(io) {
       // Message persisté → diffusé au destinataire ET à l'expéditeur (tous ses onglets/appareils,
       // y compris celui-ci) pour un affichage instantané. Le front déduplique par id.
       io.to(`user:${to}`).to(`user:${u.id}`).emit('message:receive', msg);
+      // Notification (cloche) du destinataire, avec lien direct vers la conversation
+      console.log(`[message] ${u.id} (${u.role}) → ${to} (${dest.role}) enregistré #${lastInsertRowid}`);
+      creerNotification(Number(to), 'message', `Nouveau message de ${u.name}`, chatLink(dest.role, u.id, u.name), io);
       ack?.({ ok: true, message: msg });
     }));
 

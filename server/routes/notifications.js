@@ -15,6 +15,13 @@ router.get('/', (req, res) => {
   });
 });
 
+// GET /api/notifications/socket-status → connexions Socket.io actives dans la room privée (diagnostic)
+router.get('/socket-status', async (req, res) => {
+  const io = req.app.get('io');
+  const sockets = io ? await io.in(`user:${req.user.id}`).fetchSockets() : [];
+  res.json({ userId: req.user.id, room: `user:${req.user.id}`, connexions: sockets.length, ids: sockets.map((s) => s.id) });
+});
+
 // POST /api/notifications/read-all
 router.post('/read-all', (req, res) => {
   db.prepare(`UPDATE notifications SET is_read = 1 WHERE ${scope(req.user)} AND is_read = 0`).run({ me: req.user.id });

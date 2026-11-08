@@ -43,7 +43,7 @@ function emitMissionCreated(io, missionId) {
   const mission = missionWithNames(missionId);
   if (!mission) return;
   io.to(`user:${mission.livreur_id}`).emit('mission:new', { mission });
-  notify(io, { userId: mission.livreur_id, type: 'mission_created', message: `Nouvelle mission #${mission.id} de ${mission.commercant_name}`, link: '/livreur' });
+  notify(io, { userId: mission.livreur_id, type: 'mission_created', message: `Nouvelle mission de ${mission.commercant_name} (#${mission.id})`, link: '/livreur' });
   if (mission.client_id) notify(io, { userId: mission.client_id, type: 'mission_created', message: `Nouvelle commande #${mission.id} en route (${mission.commercant_name})`, link: '/carte' });
   if (mission.client_id) io.to(`user:${mission.client_id}`).emit('mission:new-client', { mission });
   return mission;

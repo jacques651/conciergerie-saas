@@ -1,5 +1,6 @@
 // Espace client : carte des livreurs disponibles + partage de position + messagerie.
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { haversine, formatDistance } from '../geo';
 import api from '../api';
 import { getSocket } from '../socket';
@@ -44,6 +45,15 @@ export default function CarteClient() {
   };
 
   const openMessages = () => { setContact(null); setMsgOpen(true); };
+  // Lien de notification « ?chat=ID&nom=… » → ouvre directement la conversation, puis nettoie l'URL
+  const [chatParams, setChatParams] = useSearchParams();
+  useEffect(() => {
+    const id = Number(chatParams.get('chat'));
+    if (!id) return;
+    ((c) => { setContact(c); setMsgOpen(true); })({ id, name: chatParams.get('nom') || 'Contact' });
+    setChatParams({}, { replace: true });
+  }, [chatParams]); // eslint-disable-line react-hooks/exhaustive-deps
+
 
   // ---------- Mes commandes (missions liées au compte du client) ----------
   const commandes = useMesCommandes();

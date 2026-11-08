@@ -1,5 +1,6 @@
 // Espace commerçant : livreurs les plus proches, création et suivi des missions, chat.
 import { useEffect, useMemo, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import api, { errMsg } from '../api';
 import { getSocket } from '../socket';
 import AppLayout from '../components/AppLayout.jsx';
@@ -91,6 +92,15 @@ export default function DashboardCommercant() {
   const [panelOpen, setPanelOpen] = useState(true); // mobile
   const unread = useUnreadMessages(user.id, tab === 'messages');
   const openChat = (c) => { setContact(c); setTab('messages'); setPanelOpen(true); };
+  // Lien de notification « ?chat=ID&nom=… » → ouvre directement la conversation, puis nettoie l'URL
+  const [chatParams, setChatParams] = useSearchParams();
+  useEffect(() => {
+    const id = Number(chatParams.get('chat'));
+    if (!id) return;
+    openChat({ id, name: chatParams.get('nom') || 'Contact' });
+    setChatParams({}, { replace: true });
+  }, [chatParams]); // eslint-disable-line react-hooks/exhaustive-deps
+
   const [rateMission, setRateMission] = useState(null); // mission en cours de notation
 
   // ---------- Historique (GET /api/commercant/historique) ----------

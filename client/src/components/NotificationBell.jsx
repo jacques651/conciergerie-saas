@@ -1,13 +1,13 @@
 // Cloche de notifications (tous les rôles) : badge des non-lues, panneau déroulant, temps réel.
 // GET /api/notifications · POST /api/notifications/:id/read · POST /api/notifications/read-all
-// Socket : "notification:new" (personnelle) et "notification:admin" (admins).
+// Socket : "notification:nouvelle" (personnelle, et globale pour les admins).
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Bell, UserPlus, Package, CheckCircle2, CheckCheck } from 'lucide-react';
+import { Bell, UserPlus, Package, CheckCircle2, CheckCheck, MessageCircle, Check } from 'lucide-react';
 import api from '../api';
-import { getSocket } from '../socket';
+import { subscribe, socketDiagnostic } from '../socket';
 
-const ICON = { account_request: UserPlus, mission_created: Package, mission_completed: CheckCircle2 };
+const ICON = { message: MessageCircle, account_request: UserPlus, mission_created: Package, mission_completed: CheckCircle2 };
 const ago = (iso) => {
   const s = Math.max(0, (Date.now() - new Date(iso.endsWith('Z') ? iso : `${iso}Z`).getTime()) / 1000);
   if (s < 60) return "à l'instant";
@@ -29,12 +29,24 @@ export default function NotificationBell() {
 
   // Temps réel
   useEffect(() => {
-    const s = getSocket();
-    const onNew = (n) => { setItems((p) => [n, ...p.filter((x) => x.id !== n.id)].slice(0, 50)); setUnread((u) => u + 1); };
-    s?.on('notification:new', onNew);
-    s?.on('notification:admin', onNew);
-    return () => { s?.off('notification:new', onNew); s?.off('notification:admin', onNew); };
-  }, []);
+    // Une notification « message » mise à jour (même conversation) ne recompte pas le badge
+    const onNew = (n) => setItems((p) => {
+      const known = p.find((x) => x.id === n.id);
+      if (!known || known.is_read) setUnread((u) => u + 1);
+      return [n, ...p.filter((x) => x.id !== n.id)].slice(0, 50);
+    });
+    const offNew = subscribe('notification:nouvelle', onNew);
+    const offConnect = subscribe('connect', load); // (re)connexion : rattrape ce qui a été manqué
+    return () => { offNew(); offConnect(); };
+  }, [load]);
+
+  // Filet de sécurité si le temps réel est coupé (proxy, veille Render) : relecture périodique + au retour sur l'onglet
+  useEffect(() => {
+    const t = setInterval(load, 30000);
+    const onVis = () => { if (document.visibilityState === 'visible') load(); };
+    document.addEventListener('visibilitychange', onVis);
+    return () => { clearInterval(t); document.removeEventListener('visibilitychange', onVis); };
+  }, [load]);
 
   // Fermeture au clic extérieur / Échap
   useEffect(() => {
@@ -45,12 +57,14 @@ export default function NotificationBell() {
     return () => { document.removeEventListener('mousedown', onDoc); document.removeEventListener('keydown', onKey); };
   }, [open]);
 
+  const markRead = (n) => {
+    if (n.is_read) return;
+    api.post(`/notifications/${n.id}/read`).catch(() => {});
+    setItems((p) => p.map((x) => (x.id === n.id ? { ...x, is_read: 1 } : x)));
+    setUnread((u) => Math.max(0, u - 1));
+  };
   const openItem = (n) => {
-    if (!n.is_read) {
-      api.post(`/notifications/${n.id}/read`).catch(() => {});
-      setItems((p) => p.map((x) => (x.id === n.id ? { ...x, is_read: 1 } : x)));
-      setUnread((u) => Math.max(0, u - 1));
-    }
+    markRead(n);
     setOpen(false);
     if (n.link) nav(n.link);
   };
@@ -62,7 +76,7 @@ export default function NotificationBell() {
 
   return (
     <div className="tk-user" ref={ref}>
-      <button className="tk-round-btn relative" onClick={() => setOpen((o) => !o)}
+      <button className="tk-round-btn relative" onClick={() => { setOpen((o) => !o); socketDiagnostic(api).then((d) => console.log('🔔 Diagnostic socket :', d)); }}
         aria-label={`Notifications${unread ? ` (${unread} non lues)` : ''}`} aria-haspopup="menu" aria-expanded={open}>
         <Bell size={18} />
         {unread > 0 && (
@@ -91,7 +105,14 @@ export default function NotificationBell() {
                     <span className={`block whitespace-normal text-sm ${n.is_read ? '' : 'font-semibold'}`}>{n.message}</span>
                     <span className="block text-xs text-gray-500">{ago(n.created_at)}</span>
                   </span>
-                  {!n.is_read && <span className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-red-600" />}
+                  {!n.is_read && (
+                    <span role="button" tabIndex={0} title="Marquer comme lu" aria-label="Marquer comme lu"
+                      className="!w-auto shrink-0 rounded-full p-1 hover:bg-[var(--tk-surface)]"
+                      onClick={(e) => { e.stopPropagation(); markRead(n); }}
+                      onKeyDown={(e) => { if (e.key === 'Enter') { e.stopPropagation(); markRead(n); } }}>
+                      <Check size={14} />
+                    </span>
+                  )}
                 </button>
               );
             })}

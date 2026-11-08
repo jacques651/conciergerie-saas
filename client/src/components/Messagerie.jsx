@@ -149,10 +149,12 @@ export default function Messagerie({ initialContact = null, onClose, onUnreadCha
     setError('');
     const s = getSocket();
     if (!s?.connected) return setError('Connexion temps réel indisponible, réessayez dans un instant.');
-    s.emit('message:send', { to: active.id, content }, (ack) => {
+    if (!s.connected) setError('Connexion temps réel en cours… le message partira dès la reconnexion.');
+    s.timeout(15000).emit('message:send', { to: active.id, content }, (err, ack) => {
+      if (err) { setError("Le serveur n'a pas répondu : message non envoyé. Vérifiez votre connexion."); setText(content); return; }
       if (ack?.error) { setError(ack.error); setText(content); }
       // Le message revient aussi via "message:receive" ; l'ack sert de filet de sécurité
-      else if (ack?.message) setMessages((prev) => (prev.some((x) => x.id === ack.message.id) ? prev : [...prev, ack.message]));
+      else if (ack?.message) setError(''), setMessages((prev) => (prev.some((x) => x.id === ack.message.id) ? prev : [...prev, ack.message]));
     });
     setText('');
   };

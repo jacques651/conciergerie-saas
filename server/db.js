@@ -34,6 +34,17 @@ if (!missionCols.includes('delivery_price')) db.exec(`ALTER TABLE missions ADD C
 if (!missionCols.includes('order_details')) db.exec(`ALTER TABLE missions ADD COLUMN order_details TEXT`);
 // Migration : liaison des missions aux comptes clients + téléphone des utilisateurs
 if (!missionCols.includes('client_id')) db.exec(`ALTER TABLE missions ADD COLUMN client_id INTEGER REFERENCES users(id) ON DELETE SET NULL`);
+// Notifications (user_id NULL = notification globale des administrateurs)
+db.exec(`CREATE TABLE IF NOT EXISTS notifications (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+  type TEXT NOT NULL,
+  message TEXT NOT NULL,
+  link TEXT,
+  is_read INTEGER NOT NULL DEFAULT 0,
+  created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now'))
+)`);
+db.exec(`CREATE INDEX IF NOT EXISTS idx_notif_user ON notifications(user_id, is_read)`);
 db.exec(`CREATE INDEX IF NOT EXISTS idx_mission_client ON missions(client_id, status)`);
 const userCols = db.prepare(`PRAGMA table_info(users)`).all().map((c) => c.name);
 if (!userCols.includes('phone')) db.exec(`ALTER TABLE users ADD COLUMN phone TEXT`);

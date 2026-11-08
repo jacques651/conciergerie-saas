@@ -1,5 +1,6 @@
 // Layout Vert-ardoise : barre latérale + barre supérieure (thème, menu utilisateur) + bannière de page.
 // Chaque écran fournit seulement son titre (onglet), ses actions éventuelles et son contenu.
+import NotificationBell from './NotificationBell.jsx';
 import { useEffect, useRef, useState } from 'react';
 import { NavLink } from 'react-router-dom';
 import {
@@ -129,6 +130,7 @@ export default function AppLayout({ title, actions, fill = false, banner = true,
 
       <div className="tk-main">
         <header className="tk-topbar">
+          <NotificationBell />
           <NavLink to="/aide" className="tk-round-btn" title="Aide" aria-label="Aide et guide d'utilisation"><CircleHelp size={18} /></NavLink>
           <button className="tk-round-btn" onClick={toggleTheme}
             title={theme === 'dark' ? 'Passer en mode clair' : 'Passer en mode sombre'}

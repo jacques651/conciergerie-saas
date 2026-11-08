@@ -6,7 +6,8 @@ import { getSocket } from '../socket';
 import { useAuth } from '../auth.jsx';
 import AppLayout from '../components/AppLayout.jsx';
 import Modal from '../components/Modal.jsx';
-import { MessageCircle, ShoppingBag } from 'lucide-react';
+import { MessageCircle, ShoppingBag, Bike } from 'lucide-react';
+import LivreurList from '../components/LivreurList.jsx';
 import MesCommandes, { useMesCommandes } from '../components/MesCommandes.jsx';
 import MapView from '../components/MapView.jsx';
 import Messagerie from '../components/Messagerie.jsx';
@@ -47,6 +48,7 @@ export default function CarteClient() {
   // ---------- Mes commandes (missions liées au compte du client) ----------
   const commandes = useMesCommandes();
   const [ordersOpen, setOrdersOpen] = useState(false);
+  const [listOpen, setListOpen] = useState(false); // liste « Livreurs proches »
   const activeOrders = commandes.orders.filter((o) => ['pending', 'accepted', 'en_cours'].includes(o.status)).length;
   const toRate = commandes.orders.filter((o) => o.status === 'livree' && !o.my_rating).length;
   const chatFromOrder = (c) => { setOrdersOpen(false); setContact(c); setMsgOpen(true); };
@@ -54,7 +56,9 @@ export default function CarteClient() {
   return (
     <AppLayout title="Livreurs autour de moi" fill
       actions={<>
-        <span className="tk-chip">{available.length} disponible(s)</span>
+        <button onClick={() => setListOpen(true)} className="tk-chip" aria-label="Livreurs proches">
+          <Bike size={14} /> Livreurs proches <span className="tk-count">{available.length}</span>
+        </button>
         {delivering.length > 0 && <span className="tk-chip">{delivering.length} en livraison</span>}
         <button onClick={() => setOrdersOpen(true)} className="tk-chip" aria-label="Mes commandes">
           <ShoppingBag size={14} /> Mes commandes
@@ -113,6 +117,12 @@ export default function CarteClient() {
           <div className="h-[70vh]"><Messagerie initialContact={contact} showHeader={false} /></div>
         </Modal>
       </div>
+      <Modal open={listOpen} onClose={() => setListOpen(false)} title="Livreurs proches" icon={Bike} width={460} bodyClassName="p-0">
+        <div className="max-h-[65vh] overflow-y-auto">
+          <LivreurList livreurs={available} origin={pos} actionLabel="Contacter"
+            onAction={(l) => { setListOpen(false); onLivreurClick(l); }} />
+        </div>
+      </Modal>
     </AppLayout>
   );
 }

@@ -65,6 +65,8 @@ app.use('/api/admin', require('./routes/admin'));
 app.use('/api/livreur', require('./routes/livreur'));
 app.use('/api/client', require('./routes/client'));
 app.use('/api/commercant', require('./routes/commercant'));
+app.use('/api/livreurs', require('./routes/livreurs'));
+app.use('/api/notifications', require('./routes/notifications'));
 app.use('/api/messages', require('./routes/messages'));
 // Notes : /api/missions/:id/review et /api/users/:id/reviews
 app.use('/api', require('./routes/reviews'));

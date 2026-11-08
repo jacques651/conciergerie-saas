@@ -1,6 +1,6 @@
 // Back-office admin : tableau de bord, recrutement, création livreur, utilisateurs, carte globale.
 import { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import api, { errMsg } from '../api';
 import AppLayout from '../components/AppLayout.jsx';
 import MapView from '../components/MapView.jsx';
@@ -13,7 +13,9 @@ const STATUS_FR = { pending: 'En attente', approved: 'Approuvée', rejected: 'Re
 const BADGE = { pending: 'bg-amber-100 text-amber-800', approved: 'bg-green-100 text-green-800', rejected: 'bg-red-100 text-red-700' };
 
 export default function Admin() {
-  const [tab, setTab] = useState('dashboard');
+  const [params] = useSearchParams();
+  const [tab, setTab] = useState(params.get('tab') || 'dashboard');
+  useEffect(() => { if (params.get('tab')) setTab(params.get('tab')); }, [params]); // lien depuis une notification
   // Nombre de comptes en attente (badge de l'onglet), mis à jour par l'onglet Demandes
   const [pendingAccounts, setPendingAccounts] = useState(0);
   useEffect(() => { api.get('/admin/accounts', { params: { status: 'pending' } }).then((r) => setPendingAccounts(r.data.counts.pending)).catch(() => {}); }, [tab]);

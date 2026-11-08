@@ -167,6 +167,11 @@ export default function Abonnement() {
         {/* ---- Formules ---- */}
         <section>
           <h2 className="mb-3 text-center text-lg font-semibold">{active ? 'Prolonger mon abonnement' : 'Choisissez votre formule'}</h2>
+          <p className="tk-alert tk-alert-info mb-3 text-center text-sm">
+            {provider.provider === 'fedapay'
+              ? 'Vous serez redirigé vers FedaPay pour payer en toute sécurité via Orange Money ou Moov Money.'
+              : 'Mode démonstration : le paiement est simulé et votre abonnement est activé immédiatement après validation.'}
+          </p>
           {plansError && <p className="text-center text-sm text-red-600">Impossible de charger les tarifs : {plansError}</p>}
           {!plans.length && !plansError && <p className="text-center text-sm text-gray-400">Chargement des tarifs…</p>}
 

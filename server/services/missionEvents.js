@@ -1,6 +1,7 @@
 // Diffusion temps réel des changements de mission vers toutes les parties concernées :
 // commerçant (donneur d'ordre) et client destinataire (si la mission est liée à un compte).
 const { db } = require('../db');
+const { notify } = require('./notifications');
 
 /** Mission complète (noms inclus) pour les payloads socket */
 function missionWithNames(id) {
@@ -25,6 +26,10 @@ function emitMissionStatus(io, missionId, extra = {}) {
   const payload = { missionId: mission.id, status: mission.status, mission, livreurName: mission.livreur_name, ...extra };
   io.to(`user:${mission.commercant_id}`).emit('mission:status-update', payload);
   if (mission.status === 'livree') io.to(`user:${mission.commercant_id}`).emit('mission:completed', payload);
+  if (mission.status === 'livree') {
+    notify(io, { userId: mission.commercant_id, type: 'mission_completed', message: `Mission #${mission.id} livrée par ${mission.livreur_name || 'le livreur'}`, link: '/commercant' });
+    if (mission.client_id) notify(io, { userId: mission.client_id, type: 'mission_completed', message: `Votre commande #${mission.id} a été livrée`, link: '/carte' });
+  }
   if (mission.client_id) {
     io.to(`user:${mission.client_id}`).emit('mission:status-update', payload);
     if (mission.status === 'livree') io.to(`user:${mission.client_id}`).emit('mission:completed-client', payload);
@@ -38,6 +43,8 @@ function emitMissionCreated(io, missionId) {
   const mission = missionWithNames(missionId);
   if (!mission) return;
   io.to(`user:${mission.livreur_id}`).emit('mission:new', { mission });
+  notify(io, { userId: mission.livreur_id, type: 'mission_created', message: `Nouvelle mission #${mission.id} de ${mission.commercant_name}`, link: '/livreur' });
+  if (mission.client_id) notify(io, { userId: mission.client_id, type: 'mission_created', message: `Nouvelle commande #${mission.id} en route (${mission.commercant_name})`, link: '/carte' });
   if (mission.client_id) io.to(`user:${mission.client_id}`).emit('mission:new-client', { mission });
   return mission;
 }

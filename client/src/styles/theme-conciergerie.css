@@ -370,3 +370,6 @@
   aspect-ratio: 16 / 10; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px;
   color: var(--tk-muted); font-size: 12px; background: repeating-linear-gradient(45deg, var(--tk-tile-bg), var(--tk-tile-bg) 10px, var(--tk-surface) 10px, var(--tk-surface) 20px);
 }
+
+/* Cloche de notifications : panneau plus large que le menu utilisateur */
+.tk-notif-panel { width: min(360px, calc(100vw - 24px)); padding: 0; overflow: hidden; }

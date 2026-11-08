@@ -1,4 +1,5 @@
 // Inscription publique et connexion.
+const { notify } = require('../services/notifications');
 const router = require('express').Router();
 const bcrypt = require('bcryptjs');
 const { db, getActiveSubscription } = require('../db');
@@ -66,6 +67,7 @@ router.post('/register', (req, res) => {
     const id = create();
     // Pas de connexion automatique : le compte doit d'abord être approuvé par l'administrateur
     req.app.get('io')?.to('admins').emit('account:new', { id, name, role });
+    notify(req.app.get('io'), { userId: null, type: 'account_request', message: `Nouvelle inscription : ${name} (${role}) · ${formatPhone(phone)}`, link: '/admin?tab=demandes' });
     return res.status(201).json({
       ok: true,
       status: 'pending',

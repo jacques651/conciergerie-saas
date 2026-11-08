@@ -9,6 +9,7 @@ import { haversine as hv, formatDistance } from '../geo';
 import MapView, { ICONS } from '../components/MapView.jsx';
 import LivreurList from '../components/LivreurList.jsx';
 import MissionForm from '../components/MissionForm.jsx';
+import Modal from '../components/Modal.jsx';
 import Messagerie from '../components/Messagerie.jsx';
 import { useGeolocation, useLiveLivreurs, useUnreadMessages } from '../hooks';
 import { useAuth } from '../auth.jsx';
@@ -83,6 +84,7 @@ export default function DashboardCommercant() {
   );
   const [selected, setSelected] = useState(null);
   const [dest, setDest] = useState(null);
+  const [assignTo, setAssignTo] = useState(null); // livreur ciblé par « Assigner une mission » (modale)
   const [missions, setMissions] = useState([]);
   const [tab, setTab] = useState('livreurs');
   const [contact, setContact] = useState(null); // conversation à ouvrir dans l'onglet Messages
@@ -168,8 +170,10 @@ export default function DashboardCommercant() {
             {tab === 'messages' ? (
               <Messagerie initialContact={contact} />
             ) : tab === 'livreurs' ? (
-              <LivreurList livreurs={livreurs} selectedId={selected?.id}
-                onSelect={(l) => { setSelected(l); setTab('nouvelle'); }} />
+              <LivreurList livreurs={livreurs.filter((l) => l.status === 'en_ligne')} origin={pos} selectedId={selected?.id}
+                onSelect={(l) => setSelected(l)}
+                actionLabel="Assigner une mission" onAction={(l) => setAssignTo(l)}
+                onChat={(l) => openChat({ id: l.id, name: l.name, role: 'livreur' })} />
             ) : tab === 'nouvelle' ? (
               <MissionForm livreur={selected} destination={dest}
                 onCreated={(m) => { setMissions((p) => [{ ...m, livreur_name: selected.name, livreur_lat: selected.lat, livreur_lng: selected.lng }, ...p]); setDest(null); setSelected(null); setTab('missions'); }} />
@@ -199,6 +203,16 @@ export default function DashboardCommercant() {
           </div>
         </aside>
       </div>
+      {/* Assignation rapide depuis la liste : adresse = point cliqué sur la carte, sinon position du commerçant */}
+      <Modal open={!!assignTo} onClose={() => setAssignTo(null)} title={assignTo ? `Mission pour ${assignTo.name}` : ''} icon={Bike} width={520}>
+        {assignTo && (
+          <MissionForm livreur={assignTo} destination={dest || pos} onCancel={() => setAssignTo(null)}
+            onCreated={(m) => {
+              setMissions((p) => [{ ...m, livreur_name: assignTo.name, livreur_lat: assignTo.lat, livreur_lng: assignTo.lng }, ...p]);
+              setAssignTo(null); setDest(null); setTab('missions'); setPanelOpen(true);
+            }} />
+        )}
+      </Modal>
       <RateModal mission={rateMission} onClose={() => setRateMission(null)}
         onDone={(id, rating) => {
           setHistory((h) => ({ ...h, missions: h.missions.map((m) => (m.id === id ? { ...m, my_rating: rating } : m)) }));

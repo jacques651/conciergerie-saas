@@ -50,14 +50,13 @@ export default function Register() {
           <h2>Inscription réussie</h2>
         </div>
         <p className="tk-alert tk-alert-success text-center" role="status">
-          Votre compte a été créé avec succès. Il est en attente de validation par l'administrateur.
-          Une fois validé, vous pourrez vous connecter.
+          Votre compte est en attente de validation par l'administrateur.
         </p>
         <p className="text-center text-sm" style={{ color: 'var(--tk-ink-2)' }}>
           Votre identifiant : <b className="tk-num">{formatPhone(created.phone)}</b>
         </p>
         <button className="btn-primary w-full" onClick={() => nav('/login')}>
-          <LogIn size={18} /> Aller à la page de connexion
+          <LogIn size={18} /> Aller à la connexion
         </button>
       </AuthShell>
     );
@@ -91,10 +90,10 @@ export default function Register() {
         </label>
 
         <label className="block space-y-1">
-          <span className="tk-label">Mot de passe (4 caractères minimum)</span>
+          <span className="tk-label">Mot de passe</span>
           <div className="tk-field">
             <Lock className="tk-left" />
-            <input className="input" type={showPwd ? 'text' : 'password'} required minLength={4} autoComplete="new-password"
+            <input className="input" type={showPwd ? 'text' : 'password'} required minLength={4} autoComplete="new-password" placeholder="4 caractères min"
               value={form.password} onChange={set('password')} />
             <button type="button" className="tk-field-btn" onClick={() => setShowPwd((v) => !v)}
               aria-label={showPwd ? 'Masquer le mot de passe' : 'Afficher le mot de passe'}>
@@ -117,7 +116,7 @@ export default function Register() {
         </fieldset>
 
         <button className="btn-primary w-full" disabled={loading}>
-          <UserPlus size={18} /> {loading ? 'Inscription…' : "S'inscrire"}
+          <UserPlus size={18} /> {loading ? 'Création…' : 'Créer mon compte'}
         </button>
       </form>
 
